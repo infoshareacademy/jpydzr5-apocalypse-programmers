@@ -12,7 +12,7 @@ def save_objects_to_json(data: List, filename: str) -> bool:
     with open(filename, "w") as f:
         json.dump(data_as_dicts, f)
 
-
+        
 def show_message(title, message):
     """Pokazuje wiadomosci oraz bledy"""
     messagebox.showerror(title, message)
