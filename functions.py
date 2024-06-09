@@ -1,12 +1,14 @@
 from typing import List
-from classes import EventCreator, Event, Participant, Ticket
+from classes import EventCreator, Participant, Ticket
 import pendulum
 import os
 
-from tkinter import messagebox
-import random
-import string
 import json
+
+def get_list_from_json(object: object, filename: str) -> List:
+    """ tworzy listę obiektów z pliku json"""
+    result = []
+    return result
 
 def save_objects_to_json(filename: str, data: List) -> bool:
     """ zapisuje listę do pliku csv
@@ -58,15 +60,7 @@ def make_test_jsons():
                                            pendulum.datetime(2024, 10, 1, 19).in_timezone('Europe/Warsaw')),
                   event_creator2.add_event(4, 'Standup Socha', 'Stand-Up',
                                            pendulum.datetime(2024, 10, 1, 19).in_timezone('Europe/Warsaw'))]
+        )
+    # @Maksym - tu dopisz swoje obiekty
 
 
-
-def show_message(title, message):
-    """Pokazuje wiadomosci oraz bledy"""
-    messagebox.showerror(title, message)
-
-
-def get_random_string(self):
-    """generuje losowy oraz unikatowy id"""
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(8))
