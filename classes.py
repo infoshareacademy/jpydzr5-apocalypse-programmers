@@ -12,15 +12,12 @@ class Event:
             name: str,
             event_type: str,
             start_time:datetime,
-            end_time: datetime,
             creator_id: int,
     ):
-        super().__init__(self)
         self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
         self.start_time = start_time
-        self.end_time = end_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
 
 
@@ -34,6 +31,13 @@ class Event:
 
     def __str__(self):
         return f"{self._name}"
+
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
 
 class Person:
     """Przodek klas związanych z osobami"""
@@ -52,7 +56,12 @@ class Person:
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
-
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
 
 
 class Ticket:
@@ -77,6 +86,12 @@ class Ticket:
         self.row = row
         self.place = place
 
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
 
 class Participant(Person):
     """Uczestnik wydarzenia"""
@@ -85,14 +100,13 @@ class Participant(Person):
             name: str,
             event_type: str,
             start_time: datetime,
-            end_time: datetime
     ) -> Event:
-        return Event(name, event_type, start_time, end_time)
+        return Event(name, event_type, start_time)
 
     event_list = []
 
     for info in event_list:
-        print(info.name, info.event_type, info.start_time, info.end_time)
+        print(info.name, info.event_type, info.start_time)
 
     def buy_ticket(self):
         while True:
@@ -116,8 +130,10 @@ class Participant(Person):
                 # show_message('Successful', 'Your booking is successful, your ticket id is {}'.format(ticket_id.get()))
                 # top1.destroy()
             except sqlite3.Error as e:
+                pass
             # show_message('Error', e)
             finally:
+                pass
         # conn.close()
 
     def return_ticket(
@@ -168,9 +184,8 @@ class EventCreator(Person):
             name: str,
             event_type: str,
             start_time: datetime,
-            end_time: datetime,
     ) -> Event:
-        return Event(id, name, event_type, start_time, end_time, self._id)
+        return Event(id, name, event_type, start_time, self._id)
 
     def del_event(
             self,
