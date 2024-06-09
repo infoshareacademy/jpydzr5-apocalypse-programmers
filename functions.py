@@ -9,6 +9,9 @@ def show_message(title, message):
 
 
 def get_random_string(self):
-    """generuje losowy oraz unikatowy id"""
+    """generuje losowy oraz unikatowy id
+
+    na razie nie wykorzystywane
+    """
     letters = string.ascii_lowercase
     return ''.join(random.choice(letters) for i in range(8))
