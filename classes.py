@@ -1,9 +1,11 @@
 """module with classes"""
 from datetime import datetime
 import sqlite3
+import pendulum
 from tkinter import messagebox
 import random
 import string
+import re
 
 
 def show_message(title, message):
@@ -51,6 +53,21 @@ class Event:
                 result[key] = value.isoformat()
         return result
 
+    @staticmethod
+    def from_dict(data):
+        event = Event(0,'','',pendulum.now('Europe/Warsaw'),0)
+        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+
+        for key, value in data.items():
+            if isinstance(value, str) and date_pattern.match(value):
+                try:
+                    value = datetime.fromisoformat(value)
+                except ValueError:
+                    pass
+            setattr(event, key, value)
+
+        return event
+
 class Person:
     """Przodek klas związanych z osobami"""
     first_name: str = ''
@@ -75,6 +92,20 @@ class Person:
                 result[key] = value.isoformat()
         return result
 
+    @staticmethod
+    def from_dict(data):
+        person = Person(0,'','')
+        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+
+        for key, value in data.items():
+            if isinstance(value, str) and date_pattern.match(value):
+                try:
+                    value = datetime.fromisoformat(value)
+                except ValueError:
+                    pass
+            setattr(person, key, value)
+
+        return person
 
 class Ticket:
     """Daje Id biletom"""
