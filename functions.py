@@ -5,13 +5,17 @@ import os
 
 import json
 
-def get_list_from_json(object: object, filename: str) -> List:
-    """ tworzy listę obiektów z pliku json"""
-    result = []
-    return result
+def get_list_from_json(cls: object, file_name: str):
+    """wczytuje listę z pliku json"""
+    if cls is None or not hasattr(cls, 'from_dict'):
+        raise ValueError(f"No class named '{cls}' with a 'from_dict' method found")
+
+    with open(file_name, 'r') as json_file:
+        data = json.load(json_file)
+        return [cls.from_dict(item) for item in data]
 
 def save_objects_to_json(filename: str, data: List) -> bool:
-    """ zapisuje listę do pliku csv
+    """ zapisuje listę do pliku json
 
     metoda uniwersalna dla wszystkich obiektów"""
     data_as_dicts = [obj.to_dict() for obj in data]
@@ -24,7 +28,7 @@ def make_test_jsons():
     """metoda do uruchomienia tylko raz, żeby stworzyć stosowne pliki
 
     Jak już wszystkie pliki json zostaną utworzone, to nie ma sensu już jej wykorzystywać"""
-    file_path = 'jsons/event_creator_list.json'
+    file_path = 'jsons/EventCreator.json'
 
     if not os.path.exists(file_path):
         event_creator1 = EventCreator(1, 'event.creator@gmail.com', 'abcd')
@@ -35,7 +39,7 @@ def make_test_jsons():
             [event_creator1, event_creator2, ],
         )
 
-    file_path = 'jsons/participant_list.json'
+    file_path = 'jsons/Participant.json'
 
     if not os.path.exists(file_path):
 
@@ -47,7 +51,7 @@ def make_test_jsons():
             [participant1, participant2, ],
         )
 
-    file_path = 'jsons/event_list.json'
+    file_path = 'jsons/Event.json'
 
     if not os.path.exists(file_path):
         save_objects_to_json(
