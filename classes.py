@@ -1,11 +1,22 @@
 """module with classes"""
 from datetime import datetime
+import sqlite3
+import pendulum
+from tkinter import messagebox
 import random
 import string
-from tkinter import *
-from tkinter import messagebox
-import sqlite3
+import re
 
+
+def show_message(title, message):
+    """Pokazuje wiadomosci oraz bledy"""
+    messagebox.showerror(title, message)
+
+
+def get_random_string(self):
+    """generuje losowy oraz unikatowy id"""
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(8))
 
 class Event:
     """Przodek klas związanych z wydarzeniem"""
@@ -15,15 +26,12 @@ class Event:
             name: str,
             event_type: str,
             start_time:datetime,
-            end_time: datetime,
             creator_id: int,
     ):
-        super().__init__(self)
         self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
         self.start_time = start_time
-        self.end_time = end_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
 
 
@@ -37,6 +45,28 @@ class Event:
 
     def __str__(self):
         return f"{self._name}"
+
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
+
+    @staticmethod
+    def from_dict(data):
+        event = Event(0,'','',pendulum.now('Europe/Warsaw'),0)
+        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+
+        for key, value in data.items():
+            if isinstance(value, str) and date_pattern.match(value):
+                try:
+                    value = datetime.fromisoformat(value)
+                except ValueError:
+                    pass
+            setattr(event, key, value)
+
+        return event
 
 class Person:
     """Przodek klas związanych z osobami"""
@@ -55,6 +85,57 @@ class Person:
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
+
+    @staticmethod
+    def from_dict(data):
+        person = Person(0,'','')
+        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+
+        for key, value in data.items():
+            if isinstance(value, str) and date_pattern.match(value):
+                try:
+                    value = datetime.fromisoformat(value)
+                except ValueError:
+                    pass
+            setattr(person, key, value)
+
+        return person
+
+class Ticket:
+    """Daje Id biletom"""
+    tickets = []
+    for i in tickets:
+        tickets.append(i)
+
+    def __init__(
+            self,
+            id: int,
+            event_name: str,
+            participant_id: int,
+            row: str,
+            place: str
+    ):
+        """Pojedynczy bilet"""
+        super().__init__(self)
+        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
+        self.event_name = event_name  # relacja do wydarzenia
+        self.participant_id = participant_id  # relacja do uczestnika
+        self.row = row
+        self.place = place
+
+    def to_dict(self):
+        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat()
+        return result
+
 class Participant(Person):
     """Uczestnik wydarzenia"""
     def show_events(
@@ -62,14 +143,13 @@ class Participant(Person):
             name: str,
             event_type: str,
             start_time: datetime,
-            end_time: datetime
     ) -> Event:
-        return Event(name, event_type, start_time, end_time)
+        return Event(name, event_type, start_time)
 
     event_list = []
 
     for info in event_list:
-        print(info.name, info.event_type, info.start_time, info.end_time)
+        print(info.name, info.event_type, info.start_time)
 
     def buy_ticket(self):
         while True:
@@ -93,8 +173,10 @@ class Participant(Person):
                 # show_message('Successful', 'Your booking is successful, your ticket id is {}'.format(ticket_id.get()))
                 # top1.destroy()
             except sqlite3.Error as e:
+                pass
             # show_message('Error', e)
             finally:
+                pass
         # conn.close()
 
     def return_ticket(
@@ -119,21 +201,21 @@ class Participant(Person):
         conn = sqlite3.connect('ticket_booking_database.db')
         cursor = conn.cursor()
 
-    def show_my_tickets:
-
+    def show_my_tickets(self):
         conn = sqlite3.connect('ticket_booking_database.db')
         cursor = conn.cursor()
 
         cursor.execute('SELECT * FROM ticket')
         tickets = cursor.fetchall()
         for i in range(len(tickets)):
-            """podaje przyklad jak sam mam:"""
-         """Label(top2, text=tickets[i][0], borderwidth=1, relief="solid", width=20).grid(row=i + 1, column=0)
-            Label(top2, text=tickets[i][1], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=1)
-            Label(top2, text=tickets[i][2], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=2)
-            Label(top2, text=tickets[i][3], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=3)"""
-            """top2.mainloop()
-            conn.close()"""
+        #    """podaje przyklad jak sam mam:"""
+        #    """Label(top2, text=tickets[i][0], borderwidth=1, relief="solid", width=20).grid(row=i + 1, column=0)
+        #    Label(top2, text=tickets[i][1], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=1)
+        #    Label(top2, text=tickets[i][2], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=2)
+        #    Label(top2, text=tickets[i][3], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=3)"""
+        #    """
+            top2.mainloop()
+            conn.close()
 
 
 
@@ -145,9 +227,8 @@ class EventCreator(Person):
             name: str,
             event_type: str,
             start_time: datetime,
-            end_time: datetime,
     ) -> Event:
-        return Event(id, name, event_type, start_time, end_time, self._id)
+        return Event(id, name, event_type, start_time, self._id)
 
     def del_event(
             self,
@@ -161,39 +242,3 @@ class EventCreator(Person):
             new_name: str,
     ) -> None:
         Event.name = new_name
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-class Ticket:
-"""Daje Id biletam"""
-    tickets_id = []
-    for i in tickets:
-        tickets_id.append(i)
-"""Pokazuje wiadomosci oraz bledy"""
-    def show_message(self,title, message):
-        messagebox.showerror(title, message)
-
-
-    """generuje losowy oraz unikatowy id"""
-    def get_random_string(self):
-        letters = string.ascii_lowercase
-        return ''.join(random.choice(letters) for i in range(8))
-
-
-    """Pojedynczy bilet"""
-    def __init__(
-            self,
-            id: int,
-            event_name: str,
-            participant_id: int,
-            row: str,
-            place: str
-    ):
-        super().__init__(self)
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
-        self.event_name = event_name  # relacja do wydarzenia
-        self.participant_id = participant_id  # relacja do uczestnika
-        self.row = row
-        self.place = place
