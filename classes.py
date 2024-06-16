@@ -7,7 +7,7 @@ import random
 import string
 import re
 
-from object_for_classes import save_event, get_event_object, delete_event, get_event_database,\
+from functions import save_event, get_event_object, delete_event, get_event_database,\
     save_place, get_place_database,get_place_object,delete_place,\
     save_reception_desk, get_reception_desk_database,get_reception_desk_object, delete_reception_desk,\
     save_session, get_session_database, get_session_object, delete_session, \
