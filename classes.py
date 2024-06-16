@@ -7,6 +7,11 @@ import random
 import string
 import re
 
+from object_for_classes import save_event, get_event_object, delete_event, get_event_database,\
+    save_place, get_place_database,get_place_object,delete_place,\
+    save_reception_desk, get_reception_desk_database,get_reception_desk_object, delete_reception_desk,\
+    save_session, get_session_database, get_session_object, delete_session, \
+    save_ticket, get_ticket_database, get_ticket_object, delete_ticket, \
 
 def show_message(title, message):
     """Pokazuje wiadomosci oraz bledy"""
@@ -107,34 +112,126 @@ class Person:
 
         return person
 
+class Session:
+    def __init__(self, session_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+        self.session_id = session_id
+        self.event_id = event_id
+        self.place_id = place_id
+        self.reception_desk_id = reception_desk_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.price = price
+        self.datetime = datetime
+        self.reception_desk = get_reception_desk_object(reception_desk_id)
+        self.capacity = reception_desk['seats_no']
+
+    @classmethod
+    def add_session(cls, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+        session_id = cls.generate_id()
+        session = cls(session_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime)
+        save_session(vars(session))
+
+    @classmethod
+    def edit_session(cls, session_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+                     new_price, new_datetime):
+        delete_session(session_id)
+        session = cls(session_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+                      new_price, new_datetime)
+        save_session(vars(session))
+
+    @staticmethod
+    def delete_session(session_id):
+        delete_session(session_id)
+
+    @staticmethod
+    def show_which_session(event_id, place_id, reception_desk_id):
+        sessions = list(get_session_database().values())
+        for session in sessions:
+            if session['event_id'] == event_id and\
+               session['place_id'] == place_id and\
+               session['reception_desk_id'] == reception_desk_id:
+
+                session = get_session_object(session['session_id'])
+                return f"({session['session_id']}) - |{session['start_time']} to {session['end_time']} \n      "\
+                       f"|capacity status : {session['capacity']} empty seats\n      "\
+                       f"|price : {session['price']}"
+            else:
+                raise ValueError('not found session for this movie')
+
+    @staticmethod
+    def generate_id():
+        dicti = get_session_database()
+        try:
+            last_id = max(list(map(int, list(dicti.keys()))))
+            last_id += 1
+        except:
+            last_id = 1
+        return str(last_id)
+
+
+
 class Ticket:
-    """Daje Id biletom"""
-    tickets = []
-    for i in tickets:
-        tickets.append(i)
+    def __init__(self, ticket_id, session_id, participant):
+        self.ticket_id = ticket_id
+        self.session_id = session_id
+        self.participant = participant
 
-    def __init__(
-            self,
-            id: int,
-            event_name: str,
-            participant_id: int,
-            row: str,
-            place: str
-    ):
-        """Pojedynczy bilet"""
-        super().__init__(self)
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
-        self.event_name = event_name  # relacja do wydarzenia
-        self.participant_id = participant_id  # relacja do uczestnika
-        self.row = row
-        self.place = place
+    @classmethod
+    def show_ticket(cls, participant, session_id):
+        user = get_object(participant)
+        session = get_session_object(session_id)
+        if int(session['capacity']) >= 1:
+            price = int(session['price'])
+            final_price = price # can put here a tax
+            if user['payment'] >= final_price:
+                event_name = get_event_object(session['event_id'])['name']
+                placee_name = get_place_object(session['place_id'])['name']
+                reception_desk_name = get_reception_desk_object(session['reception_desk_id'])['name']
+                session_time = session['start_time'] + ' to ' + session['end_time']
+                session_datetime = session['datetime']
+                final_price = final_price
+                return f' _________________________ Your Ticket __________________________\n'\
+                      f'       event  : {event_name}\n'\
+                      f'       place : {place_name}\n'\
+                      f'       reception_desk  : {reception_desk_name} \n'\
+                      f'       date : {session_datetime}\n'\
+                      f'       time : {session_time}\n'\
+                      f'       final price : {final_price}\n'\
+                      f' __________________________________________________________________'
+            else:
+                raise ValueError('Your payment is Not enough')
+        else:
+            raise ValueError("this session doesn't have capacity")
 
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
+
+    @classmethod
+    def buy_ticket(cls, participant, session_id):
+        session = get_session_object(session_id)
+        if int(session['capacity']) >= 1:
+            price = int(session['price'])
+            user = get_object(participant)
+            discount = cls.apply_discount(participant)
+            final_price = price * (1-discount)
+            if user['payment'] >= final_price:
+                cls.payment(participant, final_price)
+                ticket_id = cls.generate_id()
+                ticket = cls(ticket_id, session_id, participant)
+                save_ticket(vars(ticket))
+                session['capacity'] = str(int(session['capacity']) - 1)
+                delete_session(session_id)
+                save_session(session)
+            else:
+                raise ValueError('Your wallet balance is Not enough')
+
+    @staticmethod
+    def generate_id():
+        dicti = get_ticket_database()
+        try:
+            last_id = max(list(map(int,list(dicti.keys()))))
+            last_id += 1
+        except:
+            last_id = 1
+        return str(last_id)
 
 class Participant(Person):
     """Uczestnik wydarzenia"""
