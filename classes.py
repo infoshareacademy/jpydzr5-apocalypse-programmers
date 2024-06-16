@@ -233,86 +233,115 @@ class Ticket:
             last_id = 1
         return str(last_id)
 
-class Participant(Person):
-    """Uczestnik wydarzenia"""
-    def show_events(
-            self,
-            name: str,
-            event_type: str,
-            start_time: datetime,
-    ) -> Event:
-        return Event(name, event_type, start_time)
+class Participant:
+    def __init__(self, username: str, password: str, participant_id: str, signup_datetime: str) -> None:
 
-    event_list = []
+        """
+        this is initializer for Participant class
+        :param username: input username
+        :param password: input password
+        :param participant_id: generated auto participant_id
+        """
+        self.participant_id = participant_id
+        self.username = username
+        self.__password = password
+        self.signup_datetime = signup_datetime
 
-    for info in event_list:
-        print(info.name, info.event_type, info.start_time)
+    @classmethod
+    def create_user(cls, username: str, password: str) -> 'Participant':
+        """
+        this method create user and save to database
+        :param username: input username
+        :param password: input password
+        :param participant_id: participant_id
+        """
+        if Participant.validate_pass(password): # these are never can be true
+            return cls.validate_pass(password) #this line never runs
+        elif Participant.validate_username(username): ####
+            return cls.validate_username(username) #####
+        elif Participant.authenticated(username):
+            raise RegisterError('\n--- Registration failed , This username already exist! ---\n')
+        else:
+            password = cls.build_pass(password)
+            participant_id = str(uuid.uuid4())
+            signup_datetime = str(datetime.now())
+            participant = Participant(username, password, participant_id, signup_datetime)
+            save(vars(participant))
+            return participant
 
-    def buy_ticket(self):
-        while True:
-            global tickets_id
-            t_id = get_random_string()
-            if t_id not in tickets_id:
-                ticket_id.set(get_random_string())
-                break
-            continue
 
-        def buy_ticket_now():
-            if len(name.get()) < 5 or len(ticket_date.get()) < 7 or len(ticket_validity.get()) < 7:
-                show_message('Error', 'Enter valid details')
-                return
-            try:
-                """pobiera dane z bazy"""
-                # conn = sqlite3.connect("ticket_booking_database.db")
-                # cursor = conn.cursor()
-                # cursor.execute("INSERT INTO ticket (name, ticket_id, ticket_date, ticket_validity) VALUES (?, ?, ?, ?)", (str(name.get()), str(ticket_id.get()), str(ticket_date.get()), str(ticket_validity.get())))
-                # conn.commit()
-                # show_message('Successful', 'Your booking is successful, your ticket id is {}'.format(ticket_id.get()))
-                # top1.destroy()
-            except sqlite3.Error as e:
-                pass
-            # show_message('Error', e)
-            finally:
-                pass
-        # conn.close()
+    @classmethod
+    def login(cls, username: str, password: str) -> object:
+        """
+        this method login participant
+        :param username: input username
+        :param password: input password
+        :return: participant object if is authenticated
+        """
+        hashed_password = cls.build_pass(password)
+        participant = Participant.authenticated(username)
+        if participant:
+            if participant._Participant__password == hashed_password:
+                return participant
+            else:
+                raise PasswordError('--- incorrect password ---')
+        else:
+            raise LoginError(f" --- There is no account with this username : {username} ---\n"
+                             f" --- Please register and try again. ---")
 
-    def return_ticket(
-            self,
-            ticket: Ticket,
-    ) -> None:
-        del Ticket
+    def change_info(self, new_username: str) -> None:
+        """
+        this method change username or phone number
+        :param new_username: new participant-name
+        """
+        if self.validate_username(new_username):
+            return self.validate_username(new_username)
+        delete(self.username)
+        self.username = new_username
+        save(vars(self))
 
-        def delete_rows(ticket_id):
-            try:
-                conn = sqlite3.connect("ticket_booking_database.db")
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM ticket WHERE ticket_id = ?", (ticket_id,))
-                conn.commit()
-                show_message('Success', 'Ticket deleted')
-                conn.close()
-            except sqlite3.Error as e:
-                show_message('Sqlite error', e)
-            finally:
-                conn.close()
+    def change_password(self, old: str, new: str, confirm_new: str) -> None:
+        """
+        change password participant
+        :param old: old password
+        :param new: new password
+        :param confirm_new: confirm new password
+        """
+        old = self.build_pass(old)
+        if old == self._Participant__password:
+            if self.match_pass(new, confirm_new):
+                if self.validate_pass(new) is None:
+                    new = self.build_pass(new)
+                    delete(self.username)
+                    self.__password = new
+                    save(vars(self))
+                return self.validate_pass(new)
+            else:
+                raise PasswordError('--- new password and confirm password not mach ---')
+        else:
+            raise PasswordError('--- your old is invalid ---')
 
-        conn = sqlite3.connect('ticket_booking_database.db')
-        cursor = conn.cursor()
+    @staticmethod
+    def match_pass(p1: str, p2: str) -> bool:
+        """
+        passwords matching
+        :param p1: password
+        :param p2: confirm password
+        :return: True if matched. return False if not matched.
+        """
+        if p1 == p2:
+            return True
+        return False
 
-    def show_my_tickets(self):
-        conn = sqlite3.connect('ticket_booking_database.db')
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT * FROM ticket')
-        tickets = cursor.fetchall()
-        for i in range(len(tickets)):
-        #    """podaje przyklad jak sam mam:"""
-        #    """Label(top2, text=tickets[i][0], borderwidth=1, relief="solid", width=20).grid(row=i + 1, column=0)
-        #    Label(top2, text=tickets[i][1], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=1)
-        #    Label(top2, text=tickets[i][2], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=2)
-        #    Label(top2, text=tickets[i][3], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=3)"""
-        #    """
-            top2.mainloop()
-            conn.close()
+    def __str__(self) -> str:
+        """
+        this is class str for present class object.
+        :return: public information.
+        """
+        participant_id, username, phone_number = self.participant_id, self.username
+        return f'\nID = {participant_id}\n' \
+               f'Username = {username}\n' \
+               f'Sign up Date = {self.signup_datetime}\n' \
 
 
 
