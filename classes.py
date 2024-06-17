@@ -33,9 +33,9 @@ class Event:
     ):
         self._id = Event._get_next_id()
         self._name = name  # unikalny indentyfikator wydarzenia
-        self.event_type = event_type
-        self.start_time = start_time
-        self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
+        self._event_type = event_type
+        self._start_time = start_time
+        self._creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
 
     @classmethod
     def _get_next_id(cls):
@@ -53,6 +53,28 @@ class Event:
     @name.setter
     def name(self, new_name: str):
         self._name = new_name
+
+    @property
+    def event_type(self) -> str:
+        return self._event_type
+
+    @event_type.setter
+    def event_type(self, new_event_type: str):
+        self._event_type = new_event_type
+
+    @property
+    def start_time(self) -> datetime:
+        return self._start_time
+
+    @start_time.setter
+    def start_time(self, new_start_time: datetime):
+        self._start_time = new_start_time
+
+    @property
+    def creator_id(self) -> int:
+        return self._creator_id
+
+    # uważam, że creator_id nie powinien być modyfikowalny
 
     def __str__(self):
         return f"{self._name}"
@@ -82,17 +104,20 @@ class Event:
 class Person:
     """Przodek klas związanych z osobami"""
     _id_counter = 0
-    first_name: str = ''
-    last_name: str = ''
+
     def __init__(
             self,
             id: int,
             email: str,
-            password: str
+            password: str,
+            first_name: str = None,
+            last_name: str = None,
     ):
         self._id = Person._get_next_id()
         self.email = email  # unikalny indentyfikator osoby
         self.password = password
+        self.first_name = first_name
+        self.last_name = last_name
 
     @classmethod
     def _get_next_id(cls):
@@ -102,6 +127,8 @@ class Person:
     @classmethod
     def set_id_counter(cls, new_max_id):
         cls._id_counter = new_max_id
+
+
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -159,19 +186,6 @@ class Ticket:
 
 class Participant(Person):
     """Uczestnik wydarzenia"""
-
-    def show_events(
-            self,
-            name: str,
-            event_type: str,
-            start_time: datetime,
-    ) -> Event:
-        return Event(name, event_type, start_time)
-
-    event_list = []
-
-    for info in event_list:
-        print(info.name, info.event_type, info.start_time)
 
     def buy_ticket(self):
         while True:
@@ -252,16 +266,42 @@ class EventCreator(Person):
     ) -> Event:
         return Event(id, name, event_type, start_time, self._id)
 
-
     def del_event(
             self,
             event: Event,
     ) -> None:
-        del Event
+        if Event.creator_id == self:
+            del Event
+        else:
+            raise ValueError('Only EventCreator can delete own Events')
 
     def rename_event(
             self,
             event: Event,
             new_name: str,
     ) -> None:
-        Event.name = new_name
+        if Event.creator_id == self:
+            Event.name = new_name
+        else:
+            raise ValueError('Only EventCreator can modify own Events')
+
+
+    def change_event_type(
+            self,
+            event_: Event,
+            new_event_type: str,
+    ) -> None:
+        if Event.creator_id == self:
+            Event.name = new_event_type
+        else:
+            raise ValueError('Only EventCreator can modify own Events')
+
+    def change_start_time(
+            self,
+            event_: Event,
+            new_start_time: str,
+    ) -> None:
+        if Event.creator_id == self:
+            Event.start_time = pendulum.parse(new_start_time)
+        else:
+            raise ValueError('Only EventCreator can modify own Events')
