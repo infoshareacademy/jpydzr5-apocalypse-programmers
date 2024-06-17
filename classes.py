@@ -14,11 +14,6 @@ def show_message(title, message):
     messagebox.showerror(title, message)
 
 
-def get_random_string(self):
-    """generuje losowy oraz unikatowy id"""
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(8))
-
 class Event:
     """Przodek klas związanych z wydarzeniem"""
     _id_counter = 0
