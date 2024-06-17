@@ -5,6 +5,7 @@ import os
 
 import json
 
+
 def get_list_from_json(cls: object, file_name: str):
     """wczytuje listę z pliku json"""
     if cls is None or not hasattr(cls, 'from_dict'):
@@ -13,6 +14,7 @@ def get_list_from_json(cls: object, file_name: str):
     with open(file_name, 'r') as json_file:
         data = json.load(json_file)
         return [cls.from_dict(item) for item in data]
+
 
 def save_objects_to_json(filename: str, data: List) -> bool:
     """ zapisuje listę do pliku json
@@ -67,7 +69,24 @@ def make_test_jsons():
         )
     # @Maksym - tu dopisz swoje obiekty
 
+    file_path = 'jsons/Ticket.json'
 
+    if not os.path.exists(file_path):
+        ticket1 = Ticket(1, 'participant1@gmail.com', 'abcd')
+        ticket2 = Ticket(2, 'participant2@wp.pl', '1234')
+
+        save_objects_to_json(
+            file_path,
+            [ticket1, ticket2, ],
+
+        )
+#Muszę to przeanalizować
+    file_path = 'jsons/Show.json'
+    file_path = 'jsons/reception_desk'
+
+
+
+#Moje stare zapisy, może być korzystne
 #-----------------------------------------Place------------------------------------------
 
 
@@ -206,46 +225,25 @@ def get_reception_desk_object(reception_desk_id: str) -> dict | None:
 #-----------------------------------------Session------------------------------------------
 
 
-def get_session_database() -> dict:
+def get_show_database() -> dict:
     """
     gets database content
     :return: dictionary of user accounts
     """
     try:
-        with open("Tickets_Session/json/session.json", "r") as fp:
+        with open("json/Show.json", "r") as fp:
             # Load the dictionary from the file
             return json.load(fp)
     except Exception as ex:
         print('You have error in get database', ex)
 
 
-def save_session(session: dict) -> None:
-    dic = get_session_database()
-    session_id = session['session_id']
-    dic.update({session_id: session})
+def get_show_object(show_id: str) -> dict | None:
     try:
-        with open("Tickets_Session/json/session.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def delete_session(session_id: str) -> None:
-    dic = get_session_database()
-    del dic[session_id]
-    try:
-        with open("Tickets_Session/json/session.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def get_session_object(session_id: str) -> dict | None:
-    try:
-        with open("Tickets_Session/json/session.json", "r") as fp:
+        with open("json/Show.json", "r") as fp:
             # Load the dictionary from the file
-            season_dict = json.load(fp)
-            season = season_dict[session_id]
+            show_dict = json.load(fp)
+            season = show_dict[show_id]
             return season
     except Exception:
         return None
@@ -256,37 +254,16 @@ def get_session_object(session_id: str) -> dict | None:
 
 def get_ticket_database() -> dict:
     try:
-        with open("Tickets_Session/json/ticket.json", "r") as fp:
+        with open("json/ticket.json", "r") as fp:
             # Load the dictionary from the file
             return json.load(fp)
     except Exception as ex:
         print('You have error in get database', ex)
 
 
-def save_ticket(ticket: dict) -> None:
-    dic = get_ticket_database()
-    ticket_id = ticket['ticket_id']
-    dic.update({ticket_id: ticket})
-    try:
-        with open("Tickets_Session/json/ticket.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def delete_ticket(ticket_id: str) -> None:
-    dic = get_ticket_database()
-    del dic[ticket_id]
-    try:
-        with open("Tickets_Session/json/ticket.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
 def get_ticket_object(ticket_id: str) -> dict | None:
     try:
-        with open("Tickets_Session/json/ticket.json", "r") as fp:
+        with open("json/ticket.json", "r") as fp:
             # Load the dictionary from the file
             ticket_dict = json.load(fp)
             ticket = ticket_dict[ticket_id]

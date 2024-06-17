@@ -7,11 +7,8 @@ import random
 import string
 import re
 
-from functions import save_event, get_event_object, delete_event, get_event_database,\
-    save_place, get_place_database,get_place_object,delete_place,\
-    save_reception_desk, get_reception_desk_database,get_reception_desk_object, delete_reception_desk,\
-    save_session, get_session_database, get_session_object, delete_session, \
-    save_ticket, get_ticket_database, get_ticket_object, delete_ticket, \
+from functions import get_list_from_json, save_objects_to_json
+
 
 def show_message(title, message):
     """Pokazuje wiadomosci oraz bledy"""
@@ -112,9 +109,10 @@ class Person:
 
         return person
 
-class Session:
-    def __init__(self, session_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
-        self.session_id = session_id
+
+class Show:
+    def __init__(self, show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+        self.show_id = show_id
         self.event_id = event_id
         self.place_id = place_id
         self.reception_desk_id = reception_desk_id
@@ -122,45 +120,62 @@ class Session:
         self.end_time = end_time
         self.price = price
         self.datetime = datetime
-        self.reception_desk = get_reception_desk_object(reception_desk_id)
+        #self.reception_desk = get_reception_desk_object(reception_desk_id)
         self.capacity = reception_desk['seats_no']
 
     @classmethod
-    def add_session(cls, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
-        session_id = cls.generate_id()
-        session = cls(session_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime)
-        save_session(vars(session))
+    def add_show(cls, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+        show_id = cls.generate_id()
+        show = cls(show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime)
+        save_show(vars(show))
 
     @classmethod
-    def edit_session(cls, session_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
-                     new_price, new_datetime):
-        delete_session(session_id)
-        session = cls(session_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+    def edit_show(cls, show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+                  new_price, new_datetime):
+        delete_show(show_id)
+        show = cls(show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
                       new_price, new_datetime)
-        save_session(vars(session))
+        save_show(vars(show))
 
     @staticmethod
-    def delete_session(session_id):
-        delete_session(session_id)
+    def save_show(show: dict) -> None:
+        #dic = get_show_database()
+        show_id = show['show_id']
+        dic.update({show_id: show})
+        try:
+            with open("json/show.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
 
     @staticmethod
-    def show_which_session(event_id, place_id, reception_desk_id):
-        sessions = list(get_session_database().values())
-        for session in sessions:
-            if session['event_id'] == event_id and\
-               session['place_id'] == place_id and\
-               session['reception_desk_id'] == reception_desk_id:
+    def delete_show(show_id):
+        dic = ()
+        del dic[show_id]
+        try:
+            with open("json/show.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
 
-                session = get_session_object(session['session_id'])
-                return f"({session['session_id']}) - |{session['start_time']} to {session['end_time']} \n      "\
-                       f"|capacity status : {session['capacity']} empty seats\n      "\
-                       f"|price : {session['price']}"
+    @staticmethod
+    def show_which_show(event_id, place_id, reception_desk_id):
+        show = list(().values())
+        for show in show:
+            if show['event_id'] == event_id and\
+               show['place_id'] == place_id and\
+               show['reception_desk_id'] == reception_desk_id:
+
+                #show = get_show_object(show['show_id'])
+                return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
+                       f"|capacity status : {show['capacity']} empty seats\n      "\
+                       f"|price : {show['price']}"
             else:
-                raise ValueError('not found session for this movie')
+                raise ValueError('not found show for this movie')
 
     @staticmethod
     def generate_id():
-        dicti = get_session_database()
+        dicti = ()
         try:
             last_id = max(list(map(int, list(dicti.keys()))))
             last_id += 1
@@ -171,67 +186,89 @@ class Session:
 
 
 class Ticket:
-    def __init__(self, ticket_id, session_id, participant):
+    def __init__(self, ticket_id, show_id, participant_id):
         self.ticket_id = ticket_id
-        self.session_id = session_id
-        self.participant = participant
+        self.show_id = show_id
+        self.participant_id = participant_id
 
     @classmethod
-    def show_ticket(cls, participant, session_id):
-        user = get_object(participant)
-        session = get_session_object(session_id)
-        if int(session['capacity']) >= 1:
-            price = int(session['price'])
+    def show_ticket(cls, participant, show_id):
+        #user = get_object(participant)
+        #show = get_show_object(show_id)
+        if int(show['capacity']) >= 1:
+            price = int(show['price'])
             final_price = price # can put here a tax
             if user['payment'] >= final_price:
-                event_name = get_event_object(session['event_id'])['name']
-                placee_name = get_place_object(session['place_id'])['name']
-                reception_desk_name = get_reception_desk_object(session['reception_desk_id'])['name']
-                session_time = session['start_time'] + ' to ' + session['end_time']
-                session_datetime = session['datetime']
+                #event_name = get_event_object(show['event_id'])['name']
+                #place_name = get_place_object(show['place_id'])['name']
+                #reception_desk_name = get_reception_desk_object(show['reception_desk_id'])['name']
+                show_time = show['start_time'] + ' to ' + show['end_time']
+                show_datetime = show['datetime']
                 final_price = final_price
                 return f' _________________________ Your Ticket __________________________\n'\
                       f'       event  : {event_name}\n'\
                       f'       place : {place_name}\n'\
                       f'       reception_desk  : {reception_desk_name} \n'\
-                      f'       date : {session_datetime}\n'\
-                      f'       time : {session_time}\n'\
+                      f'       date : {show_datetime}\n'\
+                      f'       time : {show_time}\n'\
                       f'       final price : {final_price}\n'\
                       f' __________________________________________________________________'
             else:
                 raise ValueError('Your payment is Not enough')
         else:
-            raise ValueError("this session doesn't have capacity")
+            raise ValueError("this show doesn't have capacity")
 
 
     @classmethod
-    def buy_ticket(cls, participant, session_id):
-        session = get_session_object(session_id)
-        if int(session['capacity']) >= 1:
-            price = int(session['price'])
-            user = get_object(participant)
+    def buy_ticket(cls, participant, show_id):
+        #show = get_show_object(show_id)
+        if int(show['capacity']) >= 1:
+            price = int(show['price'])
+            #user = get_object(participant)
             discount = cls.apply_discount(participant)
             final_price = price * (1-discount)
             if user['payment'] >= final_price:
                 cls.payment(participant, final_price)
                 ticket_id = cls.generate_id()
-                ticket = cls(ticket_id, session_id, participant)
+                ticket = cls(ticket_id, show_id, participant)
                 save_ticket(vars(ticket))
-                session['capacity'] = str(int(session['capacity']) - 1)
-                delete_session(session_id)
-                save_session(session)
+                show['capacity'] = str(int(show['capacity']) - 1)
+                delete_show(show_id)
+                save_show(show)
             else:
                 raise ValueError('Your wallet balance is Not enough')
 
     @staticmethod
+    def save_ticket(ticket: dict) -> None:
+        #dic = get_ticket_database()
+        ticket_id = ticket['ticket_id']
+        dic.update({ticket_id: ticket})
+        try:
+            with open("jsons/Ticket.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
+
+    @staticmethod
+    def delete_ticket(ticket_id: str) -> None:
+        #dic = get_ticket_database()
+        del dic[ticket_id]
+        try:
+            with open("jsons/Ticket.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
+
+    @staticmethod
     def generate_id():
-        dicti = get_ticket_database()
+        #dicti = get_ticket_database()
         try:
             last_id = max(list(map(int,list(dicti.keys()))))
             last_id += 1
         except:
             last_id = 1
         return str(last_id)
+
 
 class Participant:
     def __init__(self, username: str, password: str, participant_id: str, signup_datetime: str) -> None:
@@ -320,6 +357,35 @@ class Participant:
                 raise PasswordError('--- new password and confirm password not mach ---')
         else:
             raise PasswordError('--- your old is invalid ---')
+
+    def save(participant: dict) -> None:
+        """
+        save object in database
+        :param participant: participant object
+        :return: None
+        """
+        #dic = get_database()
+        username = participant['username']
+        dic.update({username: participant})
+        try:
+            with open("jsons/Participant.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
+
+    def delete(username: str) -> None:
+        """
+        delete participant object from database
+        :param username: username of participant account
+        :return: None
+        """
+        #dic = get_database()
+        del dic[username]
+        try:
+            with open("jsons/Participant.json", "w") as fp:
+                json.dump(dic, fp, indent=4)  # encode dict into JSON
+        except Exception as ex:
+            print('You have error', ex)
 
     @staticmethod
     def match_pass(p1: str, p2: str) -> bool:
