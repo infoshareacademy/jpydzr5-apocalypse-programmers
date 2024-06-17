@@ -1,4 +1,5 @@
 """module with classes"""
+import copy
 from datetime import datetime
 import sqlite3
 import pendulum
@@ -20,6 +21,8 @@ def get_random_string(self):
 
 class Event:
     """Przodek klas związanych z wydarzeniem"""
+    _id_counter = 0
+
     def __init__(
             self,
             id: int,
@@ -28,12 +31,20 @@ class Event:
             start_time:datetime,
             creator_id: int,
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
+        self._id = Event._get_next_id()
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
         self.start_time = start_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
 
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
 
     @property
     def name(self) -> str:
@@ -70,6 +81,7 @@ class Event:
 
 class Person:
     """Przodek klas związanych z osobami"""
+    _id_counter = 0
     first_name: str = ''
     last_name: str = ''
     def __init__(
@@ -78,9 +90,18 @@ class Person:
             email: str,
             password: str
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
+        self._id = Person._get_next_id()
         self.email = email  # unikalny indentyfikator osoby
         self.password = password
+
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -138,6 +159,7 @@ class Ticket:
 
 class Participant(Person):
     """Uczestnik wydarzenia"""
+
     def show_events(
             self,
             name: str,
@@ -229,6 +251,7 @@ class EventCreator(Person):
             start_time: datetime,
     ) -> Event:
         return Event(id, name, event_type, start_time, self._id)
+
 
     def del_event(
             self,
