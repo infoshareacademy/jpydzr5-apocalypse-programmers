@@ -1,4 +1,5 @@
 """module with classes"""
+import copy
 from datetime import datetime
 import sqlite3
 import pendulum
@@ -15,13 +16,10 @@ def show_message(title, message):
     messagebox.showerror(title, message)
 
 
-def get_random_string(self):
-    """generuje losowy oraz unikatowy id"""
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(8))
-
 class Event:
     """Przodek klas związanych z wydarzeniem"""
+    _id_counter = 0
+
     def __init__(
             self,
             id: int,
@@ -30,11 +28,20 @@ class Event:
             start_time:datetime,
             creator_id: int,
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
+        self._id = Event._get_next_id()
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
         self.start_time = start_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
+
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
 
 
     @property
@@ -70,19 +77,31 @@ class Event:
 
         return event
 
+
 class Person:
     """Przodek klas związanych z osobami"""
+    _id_counter = 0
     first_name: str = ''
     last_name: str = ''
+
     def __init__(
             self,
             id: int,
             email: str,
             password: str
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
+        self._id = Person._get_next_id()
         self.email = email  # unikalny indentyfikator osoby
         self.password = password
+
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -111,52 +130,75 @@ class Person:
 
 
 class Show:
+    _id_counter = 0
+
     def __init__(self, show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
-        self.show_id = show_id
-        self.event_id = event_id
+        self.show_id = Show._get_next_id()
+        self.event_id = Event._get_next_id()
         self.place_id = place_id
         self.reception_desk_id = reception_desk_id
         self.start_time = start_time
         self.end_time = end_time
         self.price = price
         self.datetime = datetime
-        #self.reception_desk = get_reception_desk_object(reception_desk_id)
+        self.reception_desk = get_reception_desk_object(reception_desk_id)
         self.capacity = reception_desk['seats_no']
 
     @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
+
+    def get_show_database(self) -> dict:
+        """
+        gets database content
+        :return: dictionary of user accounts
+        """
+        try:
+            with open("jsons/Show.json", "r") as fp:
+                # Load the dictionary from the file
+                return json.load(fp)
+        except Exception as ex:
+            print('You have error in get database', ex)
+
+
+    @classmethod
     def add_show(cls, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
-        show_id = cls.generate_id()
+        show_id = Show._get_next_id()
         show = cls(show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime)
-        save_show(vars(show))
+        cls.save_show(vars(show))
 
     @classmethod
     def edit_show(cls, show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
                   new_price, new_datetime):
-        delete_show(show_id)
+        cls.delete_show(show_id)
         show = cls(show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
                       new_price, new_datetime)
-        save_show(vars(show))
+        cls.save_show(vars(show))
 
-    @staticmethod
     def save_show(show: dict) -> None:
-        #dic = get_show_database()
-        show_id = show['show_id']
+        dic = dict.get_show_database()
+        show_id = Show._get_next_id()
         dic.update({show_id: show})
         try:
-            with open("json/show.json", "w") as fp:
+            with open("jsons/show.json", "w") as fp:
                 json.dump(dic, fp, indent=4)  # encode dict into JSON
         except Exception as ex:
             print('You have error', ex)
 
-    @staticmethod
     def delete_show(show_id):
         dic = ()
         del dic[show_id]
         try:
-            with open("json/show.json", "w") as fp:
+            with open("jsons/show.json", "w") as fp:
                 json.dump(dic, fp, indent=4)  # encode dict into JSON
         except Exception as ex:
             print('You have error', ex)
+
 
     @staticmethod
     def show_which_show(event_id, place_id, reception_desk_id):
@@ -166,42 +208,52 @@ class Show:
                show['place_id'] == place_id and\
                show['reception_desk_id'] == reception_desk_id:
 
-                #show = get_show_object(show['show_id'])
+                show = dict.get_show_database(show['show_id'])
                 return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
                        f"|capacity status : {show['capacity']} empty seats\n      "\
                        f"|price : {show['price']}"
             else:
-                raise ValueError('not found show for this movie')
-
-    @staticmethod
-    def generate_id():
-        dicti = ()
-        try:
-            last_id = max(list(map(int, list(dicti.keys()))))
-            last_id += 1
-        except:
-            last_id = 1
-        return str(last_id)
-
+                raise ValueError('not found show for this event')
 
 
 class Ticket:
+    _id_counter = 0
+
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
+
+
     def __init__(self, ticket_id, show_id, participant_id):
-        self.ticket_id = ticket_id
-        self.show_id = show_id
-        self.participant_id = participant_id
+        self.ticket_id = Ticket._get_next_id()
+        self.show_id = Show._get_next_id()
+        self.participant_id = Participant._get_next_id()
+
+
+    def get_ticket_database(self) -> dict:
+        try:
+            with open("jsons/Ticket.json", "r") as fp:
+                # Load the dictionary from the file
+                return json.load(fp)
+        except Exception as ex:
+            print('You have error in get database', ex)
 
     @classmethod
     def show_ticket(cls, participant, show_id):
-        #user = get_object(participant)
-        #show = get_show_object(show_id)
+        user = Participant._get_next_id()
+        show = Show._get_next_id()
         if int(show['capacity']) >= 1:
             price = int(show['price'])
             final_price = price # can put here a tax
             if user['payment'] >= final_price:
-                #event_name = get_event_object(show['event_id'])['name']
-                #place_name = get_place_object(show['place_id'])['name']
-                #reception_desk_name = get_reception_desk_object(show['reception_desk_id'])['name']
+                event_name = get_event_object(show['event_id'])['name']
+                place_name = get_place_object(show['place_id'])['name']
+                reception_desk_name = get_reception_desk_object(show['reception_desk_id'])['name']
                 show_time = show['start_time'] + ' to ' + show['end_time']
                 show_datetime = show['datetime']
                 final_price = final_price
@@ -221,10 +273,10 @@ class Ticket:
 
     @classmethod
     def buy_ticket(cls, participant, show_id):
-        #show = get_show_object(show_id)
+        show = Show._get_next_id()
         if int(show['capacity']) >= 1:
             price = int(show['price'])
-            #user = get_object(participant)
+            user = get_object(participant)
             discount = cls.apply_discount(participant)
             final_price = price * (1-discount)
             if user['payment'] >= final_price:
@@ -240,7 +292,7 @@ class Ticket:
 
     @staticmethod
     def save_ticket(ticket: dict) -> None:
-        #dic = get_ticket_database()
+        dic = dict.get_ticket_database()
         ticket_id = ticket['ticket_id']
         dic.update({ticket_id: ticket})
         try:
@@ -251,7 +303,7 @@ class Ticket:
 
     @staticmethod
     def delete_ticket(ticket_id: str) -> None:
-        #dic = get_ticket_database()
+        dic = dict.get_ticket_database()
         del dic[ticket_id]
         try:
             with open("jsons/Ticket.json", "w") as fp:
@@ -259,15 +311,6 @@ class Ticket:
         except Exception as ex:
             print('You have error', ex)
 
-    @staticmethod
-    def generate_id():
-        #dicti = get_ticket_database()
-        try:
-            last_id = max(list(map(int,list(dicti.keys()))))
-            last_id += 1
-        except:
-            last_id = 1
-        return str(last_id)
 
 
 class Participant:
@@ -364,7 +407,7 @@ class Participant:
         :param participant: participant object
         :return: None
         """
-        #dic = get_database()
+        dic = get_database()
         username = participant['username']
         dic.update({username: participant})
         try:
@@ -379,7 +422,7 @@ class Participant:
         :param username: username of participant account
         :return: None
         """
-        #dic = get_database()
+        dic = get_database()
         del dic[username]
         try:
             with open("jsons/Participant.json", "w") as fp:
