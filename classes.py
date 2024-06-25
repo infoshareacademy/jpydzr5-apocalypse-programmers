@@ -9,6 +9,7 @@ import string
 import re
 
 from functions import get_list_from_json, save_objects_to_json
+from main import PasswordError, UsernameError, RegisterError, LoginError
 
 
 def show_message(title, message):
@@ -132,17 +133,13 @@ class Person:
 class Show:
     _id_counter = 0
 
-    def __init__(self, show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+    def __init__(self, show_id, event_id, start_time, end_time, price, datetime):
         self.show_id = Show._get_next_id()
         self.event_id = Event._get_next_id()
-        self.place_id = place_id
-        self.reception_desk_id = reception_desk_id
         self.start_time = start_time
         self.end_time = end_time
         self.price = price
         self.datetime = datetime
-        self.reception_desk = get_reception_desk_object(reception_desk_id)
-        self.capacity = reception_desk['seats_no']
 
     @classmethod
     def _get_next_id(cls):
@@ -167,16 +164,16 @@ class Show:
 
 
     @classmethod
-    def add_show(cls, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime):
+    def add_show(cls, event_id, start_time, end_time, price, datetime):
         show_id = Show._get_next_id()
-        show = cls(show_id, event_id, place_id, reception_desk_id, start_time, end_time, price, datetime)
+        show = cls(show_id, event_id, start_time, end_time, price, datetime)
         cls.save_show(vars(show))
 
     @classmethod
-    def edit_show(cls, show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+    def edit_show(cls, show_id, new_event_id, new_start_time, new_end_time,
                   new_price, new_datetime):
         cls.delete_show(show_id)
-        show = cls(show_id, new_event_id, new_place_id, new_reception_desk_id, new_start_time, new_end_time,
+        show = cls(show_id, new_event_id, new_start_time, new_end_time,
                       new_price, new_datetime)
         cls.save_show(vars(show))
 
@@ -201,16 +198,13 @@ class Show:
 
 
     @staticmethod
-    def show_which_show(event_id, place_id, reception_desk_id):
+    def show_which_show(event_id, place_id):
         show = list(().values())
         for show in show:
             if show['event_id'] == event_id and\
-               show['place_id'] == place_id and\
-               show['reception_desk_id'] == reception_desk_id:
-
+               show['place_id'] == place_id:
                 show = dict.get_show_database(show['show_id'])
                 return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
-                       f"|capacity status : {show['capacity']} empty seats\n      "\
                        f"|price : {show['price']}"
             else:
                 raise ValueError('not found show for this event')
@@ -253,14 +247,12 @@ class Ticket:
             if user['payment'] >= final_price:
                 event_name = get_event_object(show['event_id'])['name']
                 place_name = get_place_object(show['place_id'])['name']
-                reception_desk_name = get_reception_desk_object(show['reception_desk_id'])['name']
                 show_time = show['start_time'] + ' to ' + show['end_time']
                 show_datetime = show['datetime']
                 final_price = final_price
                 return f' _________________________ Your Ticket __________________________\n'\
                       f'       event  : {event_name}\n'\
                       f'       place : {place_name}\n'\
-                      f'       reception_desk  : {reception_desk_name} \n'\
                       f'       date : {show_datetime}\n'\
                       f'       time : {show_time}\n'\
                       f'       final price : {final_price}\n'\
@@ -277,8 +269,7 @@ class Ticket:
         if int(show['capacity']) >= 1:
             price = int(show['price'])
             user = get_object(participant)
-            discount = cls.apply_discount(participant)
-            final_price = price * (1-discount)
+            final_price = price
             if user['payment'] >= final_price:
                 cls.payment(participant, final_price)
                 ticket_id = cls.generate_id()
@@ -312,8 +303,10 @@ class Ticket:
             print('You have error', ex)
 
 
-
 class Participant:
+    _id_counter = 0
+
+
     def __init__(self, username: str, password: str, participant_id: str, signup_datetime: str) -> None:
 
         """
@@ -322,10 +315,19 @@ class Participant:
         :param password: input password
         :param participant_id: generated auto participant_id
         """
-        self.participant_id = participant_id
+        self.participant_id = Participant._get_next_id()
         self.username = username
         self.__password = password
         self.signup_datetime = signup_datetime
+
+    @classmethod
+    def _get_next_id(cls):
+        cls._id_counter += 1
+        return cls._id_counter
+
+    @classmethod
+    def set_id_counter(cls, new_max_id):
+        cls._id_counter = new_max_id
 
     @classmethod
     def create_user(cls, username: str, password: str) -> 'Participant':
@@ -346,7 +348,7 @@ class Participant:
             participant_id = str(uuid.uuid4())
             signup_datetime = str(datetime.now())
             participant = Participant(username, password, participant_id, signup_datetime)
-            save(vars(participant))
+            cls.save(vars(participant))
             return participant
 
 
@@ -392,7 +394,7 @@ class Participant:
             if self.match_pass(new, confirm_new):
                 if self.validate_pass(new) is None:
                     new = self.build_pass(new)
-                    delete(self.username)
+                    self.delete(self.username)
                     self.__password = new
                     save(vars(self))
                 return self.validate_pass(new)

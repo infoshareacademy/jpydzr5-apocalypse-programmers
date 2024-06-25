@@ -1,5 +1,5 @@
 from typing import List
-from classes import EventCreator, Participant, Ticket
+from classes import EventCreator, Participant, Ticket, Show
 import pendulum
 import os
 
@@ -44,9 +44,8 @@ def make_test_jsons():
     file_path = 'jsons/Participant.json'
 
     if not os.path.exists(file_path):
-
-        participant1 = Participant(1, 'participant1@gmail.com', 'abcd')
-        participant2 = Participant(2, 'participant2@wp.pl', '1234')
+        participant1 = Participant(1, 'dcba', '1', '10:00:00')
+        participant2 = Participant(2, '4321', '2', '13:20:05')
 
         save_objects_to_json(
             file_path,
@@ -72,201 +71,31 @@ def make_test_jsons():
     file_path = 'jsons/Ticket.json'
 
     if not os.path.exists(file_path):
-        ticket1 = Ticket(1, 'participant1@gmail.com', 'abcd')
-        ticket2 = Ticket(2, 'participant2@wp.pl', '1234')
+        ticket1 = Ticket(1, 1, 1)
+        ticket2 = Ticket(2, 2, 2)
 
         save_objects_to_json(
             file_path,
             [ticket1, ticket2, ],
 
         )
-#Muszę to przeanalizować
+
     file_path = 'jsons/Show.json'
-    file_path = 'jsons/reception_desk'
+
+    if not os.path.exists(file_path):
+        show1 = Show(1, 1, '19:00:00', '22:00:00', 200, '01/10/2022')
+        show2 = Show(2, 2, '19:00:00', '22:00:00', 200, '01/10/2022')
+
+        save_objects_to_json(
+            file_path,
+            [show1, show2, ],
+
+        )
 
 
 
-#Moje stare zapisy, może być korzystne
-#-----------------------------------------Place------------------------------------------
 
 
-def get_place_database() -> dict:
-    try:
-        with open("Tickets_Session/json/place.json", "r") as fp:
-            # Load the dictionary from the file
-            return json.load(fp)
-    except Exception as ex:
-        print('You have error in get database', ex)
 
 
-def save_place(place: dict) -> None:
-    dic = get_place_database()
-    place_id = place['place_id']
-    dic.update({place_id: place})
-    try:
-        with open("Tickets_Session/json/place.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
 
-
-def delete_place(place_id: str) -> None:
-    dic = get_place_database()
-    del dic[place_id]
-    try:
-        with open("Tickets_Session/json/place.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def get_place_object(place_id: str) -> dict | None:
-    try:
-        with open("Tickets_Session/json/place.json", "r") as fp:
-            # Load the dictionary from the file
-            place_dict = json.load(fp)
-            place = place_dict[place_id]
-            return place
-    except Exception:
-        return None
-
-#-----------------------------------------Event_Place_Reception_desk------------------------------------------
-
-
-def get_event_database() -> dict:
-    try:
-        with open("Tickets_Session/json/event.json", "r") as fp:
-            # Load the dictionary from the file
-            return json.load(fp)
-    except Exception as ex:
-        print('You have error in get event-database', ex)
-
-
-def save_event(event: dict) -> None:
-    dic = get_event_database()
-    event_id = event['event_id']
-    dic.update({event_id: event})
-    try:
-        with open("Tickets_Session/json/event.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def delete_event(event_id: str) -> None:
-    dic = get_event_database()
-    del dic[event_id]
-    try:
-        with open("Tickets_Session/json/event.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def get_event_object(event_id: str) -> dict | None:
-    """
-    get object from database
-    :param event_id: username
-    :return: user object
-    """
-    try:
-        with open("Tickets_Session/json/event.json", "r") as fp:
-            # Load the dictionary from the file
-            event_dict = json.load(fp)
-            event = event_dict[event_id]
-            return event
-    except Exception:
-        return None
-
-
-#-----------------------------------------Reception desk------------------------------------------
-
-
-def get_reception_desk_database() -> dict:
-    try:
-        with open("Tickets_Session/json/reception_desk.json", "r") as fp:
-            # Load the dictionary from the file
-            return json.load(fp)
-    except Exception as ex:
-        print('You have error in get database', ex)
-
-
-def save_reception_desk(reception_desk: dict) -> None:
-    dic = get_reception_desk_database()
-    reception_desk_id = reception_desk['reception_desk_id']
-    dic.update({reception_desk_id: reception_desk})
-    try:
-        with open("Tickets_Session/json/reception_desk.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def delete_reception_desk(reception_desk_id: str) -> None:
-    dic = get_reception_desk_database()
-    del dic[reception_desk_id]
-    try:
-        with open("Ticketś/json/reception_desk.json", "w") as fp:
-            json.dump(dic, fp, indent=4)  # encode dict into JSON
-    except Exception as ex:
-        print('You have error', ex)
-
-
-def get_reception_desk_object(reception_desk_id: str) -> dict | None:
-    try:
-        with open("Tickets_Session/json/reception_desk.json", "r") as fp:
-            # Load the dictionary from the file
-            reception_desk_dict = json.load(fp)
-            reception_desk = reception_desk_dict[reception_desk_id]
-            return reception_desk
-    except Exception:
-        return None
-
-#-----------------------------------------Session------------------------------------------
-
-
-def get_show_database() -> dict:
-    """
-    gets database content
-    :return: dictionary of user accounts
-    """
-    try:
-        with open("json/Show.json", "r") as fp:
-            # Load the dictionary from the file
-            return json.load(fp)
-    except Exception as ex:
-        print('You have error in get database', ex)
-
-
-def get_show_object(show_id: str) -> dict | None:
-    try:
-        with open("json/Show.json", "r") as fp:
-            # Load the dictionary from the file
-            show_dict = json.load(fp)
-            season = show_dict[show_id]
-            return season
-    except Exception:
-        return None
-
-
-#-----------------------------------------Ticket------------------------------------------
-
-
-def get_ticket_database() -> dict:
-    try:
-        with open("json/ticket.json", "r") as fp:
-            # Load the dictionary from the file
-            return json.load(fp)
-    except Exception as ex:
-        print('You have error in get database', ex)
-
-
-def get_ticket_object(ticket_id: str) -> dict | None:
-    try:
-        with open("json/ticket.json", "r") as fp:
-            # Load the dictionary from the file
-            ticket_dict = json.load(fp)
-            ticket = ticket_dict[ticket_id]
-            return ticket
-    except Exception:
-        return None
