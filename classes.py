@@ -7,6 +7,7 @@ from tkinter import messagebox
 import random
 import string
 import re
+import uuid, hashlib
 
 from functions import get_list_from_json, save_objects_to_json
 from main import PasswordError, UsernameError, RegisterError, LoginError
@@ -178,7 +179,7 @@ class Show:
         cls.save_show(vars(show))
 
     def save_show(show: dict) -> None:
-        dic = dict.get_show_database()
+        dic = get_list_from_json()
         show_id = Show._get_next_id()
         dic.update({show_id: show})
         try:
@@ -187,8 +188,8 @@ class Show:
         except Exception as ex:
             print('You have error', ex)
 
-    def delete_show(show_id):
-        dic = ()
+    def delete_show(show_id: str) -> None:
+        dic = get_list_from_json()
         del dic[show_id]
         try:
             with open("jsons/show.json", "w") as fp:
@@ -198,11 +199,10 @@ class Show:
 
 
     @staticmethod
-    def show_which_show(event_id, place_id):
+    def show_which_show(event_id):
         show = list(().values())
         for show in show:
-            if show['event_id'] == event_id and\
-               show['place_id'] == place_id:
+            if show['event_id'] == event_id:
                 show = dict.get_show_database(show['show_id'])
                 return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
                        f"|price : {show['price']}"
@@ -222,12 +222,10 @@ class Ticket:
     def set_id_counter(cls, new_max_id):
         cls._id_counter = new_max_id
 
-
-    def __init__(self, ticket_id, show_id, participant_id):
+    def __init__(self):
         self.ticket_id = Ticket._get_next_id()
         self.show_id = Show._get_next_id()
         self.participant_id = Participant._get_next_id()
-
 
     def get_ticket_database(self) -> dict:
         try:
@@ -238,21 +236,19 @@ class Ticket:
             print('You have error in get database', ex)
 
     @classmethod
-    def show_ticket(cls, participant, show_id):
+    def show_ticket(cls):
         user = Participant._get_next_id()
         show = Show._get_next_id()
         if int(show['capacity']) >= 1:
             price = int(show['price'])
             final_price = price # can put here a tax
             if user['payment'] >= final_price:
-                event_name = get_event_object(show['event_id'])['name']
-                place_name = get_place_object(show['place_id'])['name']
+                event_name = get_list_from_json(show['event_id'])['name']
                 show_time = show['start_time'] + ' to ' + show['end_time']
                 show_datetime = show['datetime']
                 final_price = final_price
                 return f' _________________________ Your Ticket __________________________\n'\
                       f'       event  : {event_name}\n'\
-                      f'       place : {place_name}\n'\
                       f'       date : {show_datetime}\n'\
                       f'       time : {show_time}\n'\
                       f'       final price : {final_price}\n'\
@@ -264,17 +260,17 @@ class Ticket:
 
 
     @classmethod
-    def buy_ticket(cls, participant, show_id):
+    def buy_ticket(cls, participant, show_id, delete_show=None, save_show=None):
         show = Show._get_next_id()
         if int(show['capacity']) >= 1:
             price = int(show['price'])
-            user = get_object(participant)
+            user = get_list_from_json(participant)
             final_price = price
             if user['payment'] >= final_price:
                 cls.payment(participant, final_price)
-                ticket_id = cls.generate_id()
-                ticket = cls(ticket_id, show_id, participant)
-                save_ticket(vars(ticket))
+                ticket_id = Ticket._get_next_id()
+                ticket = (ticket_id, show_id, participant)
+                cls.save_ticket(vars(ticket))
                 show['capacity'] = str(int(show['capacity']) - 1)
                 delete_show(show_id)
                 save_show(show)
@@ -307,7 +303,7 @@ class Participant:
     _id_counter = 0
 
 
-    def __init__(self, username: str, password: str, participant_id: str, signup_datetime: str) -> None:
+    def __init__(self, username: str, password: str, signup_datetime: str) -> None:
 
         """
         this is initializer for Participant class
@@ -329,6 +325,59 @@ class Participant:
     def set_id_counter(cls, new_max_id):
         cls._id_counter = new_max_id
 
+    @staticmethod
+    def validate_pass(password: str) -> None:
+        """
+        this method validate password
+        :param password: password for check
+        :return: None if password was correct. or rais error if not valid
+        """
+        if password == '' or password.isspace():
+            raise PasswordError('\n--- your password was empty! you must set password ---\n')
+        elif len(password) < 4:
+            raise PasswordError('\n--- The length of the password must be more than 4 characters! ---\n')
+        return None  # why wrong with false?
+
+    @staticmethod
+    def validate_username(username: str) -> None:
+        """
+        this method validate username
+        :param username:
+        :return:
+        """
+        if len(username) == 0:
+            raise UsernameError('\n--- your username was empty! you must set password ---\n')
+        return None # false?
+
+    @staticmethod
+    def build_pass(password: str) -> str:
+        """
+        this method hashed password by hashlib
+        :param password:
+        :return: hashed password
+        """
+        password = password.encode()
+        p_hash = hashlib.sha256()
+        p_hash.update(password)
+        password = p_hash.hexdigest()
+        return password
+        # return password = hashlib.sha256(password.encode()).hexdigest()
+
+    @classmethod
+    def authenticated(cls, username: str) -> object | None:
+        """
+        this method check user is authenticated or not ...
+        :param username: username
+        :return: if authenticated return user object . if not, return None.
+        """
+        user = get_list_from_json(username)
+        if user is not None:
+
+            user = cls(user['username'], user['password'],  user['user_id'], user['signup_datetime'])
+            return user
+        else:
+            return None
+
     @classmethod
     def create_user(cls, username: str, password: str) -> 'Participant':
         """
@@ -345,10 +394,9 @@ class Participant:
             raise RegisterError('\n--- Registration failed , This username already exist! ---\n')
         else:
             password = cls.build_pass(password)
-            participant_id = str(uuid.uuid4())
             signup_datetime = str(datetime.now())
-            participant = Participant(username, password, participant_id, signup_datetime)
-            cls.save(vars(participant))
+            participant = Participant(username, password,  signup_datetime)
+            save(vars(participant))
             return participant
 
 
@@ -371,7 +419,7 @@ class Participant:
             raise LoginError(f" --- There is no account with this username : {username} ---\n"
                              f" --- Please register and try again. ---")
 
-    def change_info(self, new_username: str) -> None:
+    def change_info(self, new_username: str, delete, save) -> None:
         """
         this method change username or phone number
         :param new_username: new participant-name
@@ -382,7 +430,7 @@ class Participant:
         self.username = new_username
         save(vars(self))
 
-    def change_password(self, old: str, new: str, confirm_new: str) -> None:
+    def change_password(self, old: str, new: str, confirm_new: str, delete, save) -> None:
         """
         change password participant
         :param old: old password
@@ -394,7 +442,7 @@ class Participant:
             if self.match_pass(new, confirm_new):
                 if self.validate_pass(new) is None:
                     new = self.build_pass(new)
-                    self.delete(self.username)
+                    delete(self.username)
                     self.__password = new
                     save(vars(self))
                 return self.validate_pass(new)
@@ -403,20 +451,7 @@ class Participant:
         else:
             raise PasswordError('--- your old is invalid ---')
 
-    def save(participant: dict) -> None:
-        """
-        save object in database
-        :param participant: participant object
-        :return: None
-        """
-        dic = get_database()
-        username = participant['username']
-        dic.update({username: participant})
-        try:
-            with open("jsons/Participant.json", "w") as fp:
-                json.dump(dic, fp, indent=4)  # encode dict into JSON
-        except Exception as ex:
-            print('You have error', ex)
+
 
     def delete(username: str) -> None:
         """
@@ -424,7 +459,7 @@ class Participant:
         :param username: username of participant account
         :return: None
         """
-        dic = get_database()
+        dic = save_objects_to_json()
         del dic[username]
         try:
             with open("jsons/Participant.json", "w") as fp:
