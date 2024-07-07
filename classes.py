@@ -7,9 +7,9 @@ from tkinter import messagebox
 import random
 import string
 import re
-import uuid, hashlib
+import hashlib
 
-from functions import get_list_from_json, save_objects_to_json
+from functions import get_list_from_json
 from main import PasswordError, UsernameError, RegisterError, LoginError
 
 
@@ -200,10 +200,10 @@ class Show:
 
     @staticmethod
     def show_which_show(event_id):
-        show = list(().values())
+        show = list((get_list_from_json).values())
         for show in show:
             if show['event_id'] == event_id:
-                show = dict.get_show_database(show['show_id'])
+                show = get_list_from_json(show['show_id'])
                 return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
                        f"|price : {show['price']}"
             else:
@@ -222,18 +222,10 @@ class Ticket:
     def set_id_counter(cls, new_max_id):
         cls._id_counter = new_max_id
 
-    def __init__(self):
-        self.ticket_id = Ticket._get_next_id()
-        self.show_id = Show._get_next_id()
-        self.participant_id = Participant._get_next_id()
-
-    def get_ticket_database(self) -> dict:
-        try:
-            with open("jsons/Ticket.json", "r") as fp:
-                # Load the dictionary from the file
-                return json.load(fp)
-        except Exception as ex:
-            print('You have error in get database', ex)
+    def __init__(self, ticket_id, show_id, participant_id):
+        self.ticket_id = Ticket._get_next_id(), ticket_id
+        self.show_id = Show._get_next_id(), show_id
+        self.participant_id = Participant._get_next_id(), participant_id
 
     @classmethod
     def show_ticket(cls):
@@ -267,7 +259,6 @@ class Ticket:
             user = get_list_from_json(participant)
             final_price = price
             if user['payment'] >= final_price:
-                cls.payment(participant, final_price)
                 ticket_id = Ticket._get_next_id()
                 ticket = (ticket_id, show_id, participant)
                 cls.save_ticket(vars(ticket))
@@ -279,7 +270,7 @@ class Ticket:
 
     @staticmethod
     def save_ticket(ticket: dict) -> None:
-        dic = dict.get_ticket_database()
+        dic = get_list_from_json()
         ticket_id = ticket['ticket_id']
         dic.update({ticket_id: ticket})
         try:
@@ -290,7 +281,7 @@ class Ticket:
 
     @staticmethod
     def delete_ticket(ticket_id: str) -> None:
-        dic = dict.get_ticket_database()
+        dic = get_list_from_json()
         del dic[ticket_id]
         try:
             with open("jsons/Ticket.json", "w") as fp:
@@ -372,8 +363,7 @@ class Participant:
         """
         user = get_list_from_json(username)
         if user is not None:
-
-            user = cls(user['username'], user['password'],  user['user_id'], user['signup_datetime'])
+            user = cls(user['username'], user['password'], user['signup_datetime'])
             return user
         else:
             return None
@@ -459,7 +449,7 @@ class Participant:
         :param username: username of participant account
         :return: None
         """
-        dic = save_objects_to_json()
+        dic = get_list_from_json()
         del dic[username]
         try:
             with open("jsons/Participant.json", "w") as fp:
@@ -484,7 +474,7 @@ class Participant:
         this is class str for present class object.
         :return: public information.
         """
-        participant_id, username, phone_number = self.participant_id, self.username
+        participant_id, username = self.participant_id, self.username
         return f'\nID = {participant_id}\n' \
                f'Username = {username}\n' \
                f'Sign up Date = {self.signup_datetime}\n' \

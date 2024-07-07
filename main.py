@@ -23,7 +23,6 @@ if __name__ == '__main__':
     ticket_list = get_list_from_json(Ticket, 'jsons/Ticket.json')
     Ticket.set_id_counter(max(ticket._id for ticket in ticket_list))
 
-    reception_desk_list = get_list_from_json(Reception_Desk, 'jsons/Reception_Desk')
 
 
 
