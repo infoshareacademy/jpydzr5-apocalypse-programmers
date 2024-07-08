@@ -1,50 +1,54 @@
 """module with classes"""
-import copy
 from datetime import datetime
-import sqlite3
-import pendulum
-from tkinter import messagebox
-import random
-import string
-import re
 import hashlib
-
-from functions import get_list_from_json
-from main import PasswordError, UsernameError, RegisterError, LoginError
-
-
-def show_message(title, message):
-    """Pokazuje wiadomosci oraz bledy"""
-    messagebox.showerror(title, message)
+from database_connection import DatabaseConnection
+from exceptions import PasswordError, UsernameError, RegisterError, LoginError
 
 
 class Event:
     """Przodek klas związanych z wydarzeniem"""
-    _id_counter = 0
 
     def __init__(
             self,
-            id: int,
             name: str,
             event_type: str,
-            start_time:datetime,
+            start_time: datetime,
             creator_id: int,
+            event_id: int = None,
     ):
-        self._id = Event._get_next_id()
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
         self.start_time = start_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
+        self.event_id = event_id
 
-    @classmethod
-    def _get_next_id(cls):
-        cls._id_counter += 1
-        return cls._id_counter
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
 
-    @classmethod
-    def set_id_counter(cls, new_max_id):
-        cls._id_counter = new_max_id
+        if self.event_id is None:
+            cursor.execute('''
+                        INSERT INTO event (name, event_type, start_time, creator_id)
+                        VALUES (?, ?, ?, ?)
+                    ''', (self._name, self.event_type, self.start_time.to_iso8601_string(), self.creator_id))
+            self.event_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE event
+                        SET name = ?, event_type = ?, start_time = ?
+                        WHERE id = ?
+                    ''', (self._name, self.event_type, self.start_time.to_iso8601_string(), self.event_id))
+        conn.commit()
 
+    @staticmethod
+    def get_by_id(event_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, name, event_type, start_time, creator_id FROM event WHERE id = ?', (event_id,))
+        row = cursor.fetchone()
+        if row:
+            return Event(row[1], row[2], row[3], row[4], row[0])
+        return None
 
     @property
     def name(self) -> str:
@@ -57,153 +61,112 @@ class Event:
     def __str__(self):
         return f"{self._name}"
 
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
-
-    @staticmethod
-    def from_dict(data):
-        event = Event(0,'','',pendulum.now('Europe/Warsaw'),0)
-        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
-
-        for key, value in data.items():
-            if isinstance(value, str) and date_pattern.match(value):
-                try:
-                    value = datetime.fromisoformat(value)
-                except ValueError:
-                    pass
-            setattr(event, key, value)
-
-        return event
-
 
 class Person:
     """Przodek klas związanych z osobami"""
-    _id_counter = 0
+    person_id: int = None
     first_name: str = ''
     last_name: str = ''
 
     def __init__(
             self,
-            id: int,
             email: str,
-            password: str
+            password: str,
+            person_id: int = None,
     ):
-        self._id = Person._get_next_id()
         self.email = email  # unikalny indentyfikator osoby
-        self.password = password
+        self.__password = password
+        self.person_id = person_id
 
-    @classmethod
-    def _get_next_id(cls):
-        cls._id_counter += 1
-        return cls._id_counter
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
 
-    @classmethod
-    def set_id_counter(cls, new_max_id):
-        cls._id_counter = new_max_id
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name}"
-
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
+        if self.person_id is None:
+            cursor.execute('''
+                        INSERT INTO person (email, password)
+                        VALUES (?, ?)
+                    ''', (self.email, self.__password))
+            self.person_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE person
+                        SET email = ?, password = ?
+                        WHERE id = ?
+                    ''', (self.email, self.__password, self.person_id))
+        conn.commit()
 
     @staticmethod
-    def from_dict(data):
-        person = Person(0,'','')
-        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+    def get_by_id(person_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, email, password FROM person WHERE id = ?', (person_id,))
+        row = cursor.fetchone()
+        if row:
+            return Person(row[1], row[2], row[0])
+        return None
 
-        for key, value in data.items():
-            if isinstance(value, str) and date_pattern.match(value):
-                try:
-                    value = datetime.fromisoformat(value)
-                except ValueError:
-                    pass
-            setattr(person, key, value)
-
-        return person
+    def __str__(self):
+        return f"{self.email}"
 
 
 class Show:
-    _id_counter = 0
 
-    def __init__(self, show_id, event_id, start_time, end_time, price, datetime):
-        self.show_id = Show._get_next_id()
-        self.event_id = Event._get_next_id()
+    def __init__(self, event_id, start_time, end_time, price, show_id: int = None ):
+        self.event_id = event_id
         self.start_time = start_time
         self.end_time = end_time
         self.price = price
-        self.datetime = datetime
+        self.show_id = show_id
+
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        if self.show_id is None:
+            cursor.execute('''
+                        INSERT INTO show (event_id, start_time, end_time, price)
+                        VALUES (?, ?, ?, ?)
+                    ''', (self.event_id, self.start_time.to_iso8601_string(), self.end_time.to_iso8601_string(), self.price))
+            self.show_id= cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE show
+                        SET start_time = ?, end_time = ?, price = ?
+                        WHERE id = ?
+                    ''', (self.start_time.to_iso8601_string(), self.end_time.to_iso8601_string(), self.price, self.show_id))
+        conn.commit()
+
+    @staticmethod
+    def get_by_id(show_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, event_id, start_time, end_time, price FROM show WHERE id = ?', (show_id,))
+        row = cursor.fetchone()
+        if row:
+            return Show(row[1], row[2], row[3], row[4], row[0])
+        return None
+
 
     @classmethod
-    def _get_next_id(cls):
-        cls._id_counter += 1
-        return cls._id_counter
-
-    @classmethod
-    def set_id_counter(cls, new_max_id):
-        cls._id_counter = new_max_id
-
-    def get_show_database(self) -> dict:
-        """
-        gets database content
-        :return: dictionary of user accounts
-        """
-        try:
-            with open("jsons/Show.json", "r") as fp:
-                # Load the dictionary from the file
-                return json.load(fp)
-        except Exception as ex:
-            print('You have error in get database', ex)
-
-
-    @classmethod
-    def add_show(cls, event_id, start_time, end_time, price, datetime):
-        show_id = Show._get_next_id()
-        show = cls(show_id, event_id, start_time, end_time, price, datetime)
-        cls.save_show(vars(show))
+    def add_show(cls, event_id, start_time, end_time, price):
+        show = cls(show_id, event_id, start_time, end_time, price)
 
     @classmethod
     def edit_show(cls, show_id, new_event_id, new_start_time, new_end_time,
-                  new_price, new_datetime):
+                  new_price):
         cls.delete_show(show_id)
-        show = cls(show_id, new_event_id, new_start_time, new_end_time,
-                      new_price, new_datetime)
-        cls.save_show(vars(show))
-
-    def save_show(show: dict) -> None:
-        dic = get_list_from_json()
-        show_id = Show._get_next_id()
-        dic.update({show_id: show})
-        try:
-            with open("jsons/show.json", "w") as fp:
-                json.dump(dic, fp, indent=4)  # encode dict into JSON
-        except Exception as ex:
-            print('You have error', ex)
+        show = cls(show_id, new_event_id, new_start_time, new_end_time, new_price)
 
     def delete_show(show_id: str) -> None:
-        dic = get_list_from_json()
         del dic[show_id]
-        try:
-            with open("jsons/show.json", "w") as fp:
-                json.dump(dic, fp, indent=4)  # encode dict into JSON
-        except Exception as ex:
-            print('You have error', ex)
-
 
     @staticmethod
     def show_which_show(event_id):
-        show = list((get_list_from_json).values())
+        # show = list((get_list_from_json).values())
         for show in show:
             if show['event_id'] == event_id:
-                show = get_list_from_json(show['show_id'])
+                # show = get_list_from_json(show['show_id'])
                 return f"({show['show_id']}) - |{show['start_time']} to {show['end_time']} \n      "\
                        f"|price : {show['price']}"
             else:
@@ -211,26 +174,43 @@ class Show:
 
 
 class Ticket:
-    _id_counter = 0
+    def __init__(self, show_id, participant_id, ticket_id: int = None):
+        self.show_id = show_id
+        self.participant_id = participant_id
+        self.ticket_id = ticket_id
 
-    @classmethod
-    def _get_next_id(cls):
-        cls._id_counter += 1
-        return cls._id_counter
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
 
-    @classmethod
-    def set_id_counter(cls, new_max_id):
-        cls._id_counter = new_max_id
+        if self.ticket_id is None:
+            cursor.execute('''
+                        INSERT INTO ticket (show_id, participant_id)
+                        VALUES (?, ?)
+                    ''', (self.show_id, self.participant_id))
+            self.ticket_id= cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE ticket
+                        SET participant_id = ?
+                        WHERE id = ?
+                    ''', (self.participant_id, self.ticket_id))
+        conn.commit()
 
-    def __init__(self, ticket_id, show_id, participant_id):
-        self.ticket_id = Ticket._get_next_id(), ticket_id
-        self.show_id = Show._get_next_id(), show_id
-        self.participant_id = Participant._get_next_id(), participant_id
+    @staticmethod
+    def get_by_id(ticket_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, show_id, participant_id FROM ticket WHERE id = ?', (ticket_id,))
+        row = cursor.fetchone()
+        if row:
+            return Show(row[1], row[2], row[0])
+        return None
 
     @classmethod
     def show_ticket(cls):
-        user = Participant._get_next_id()
-        show = Show._get_next_id()
+        # user = Participant._get_next_id()
+        # show = Show._get_next_id()
         if int(show['capacity']) >= 1:
             price = int(show['price'])
             final_price = price # can put here a tax
@@ -270,7 +250,7 @@ class Ticket:
 
     @staticmethod
     def save_ticket(ticket: dict) -> None:
-        dic = get_list_from_json()
+        # dic = get_list_from_json()
         ticket_id = ticket['ticket_id']
         dic.update({ticket_id: ticket})
         try:
@@ -281,42 +261,11 @@ class Ticket:
 
     @staticmethod
     def delete_ticket(ticket_id: str) -> None:
-        dic = get_list_from_json()
+        # dic = get_list_from_json()
         del dic[ticket_id]
-        try:
-            with open("jsons/Ticket.json", "w") as fp:
-                json.dump(dic, fp, indent=4)  # encode dict into JSON
-        except Exception as ex:
-            print('You have error', ex)
-
 
 class Participant:
-    _id_counter = 0
 
-
-    def __init__(self, username: str, password: str, signup_datetime: str) -> None:
-
-        """
-        this is initializer for Participant class
-        :param username: input username
-        :param password: input password
-        :param participant_id: generated auto participant_id
-        """
-        self.participant_id = Participant._get_next_id()
-        self.username = username
-        self.__password = password
-        self.signup_datetime = signup_datetime
-
-    @classmethod
-    def _get_next_id(cls):
-        cls._id_counter += 1
-        return cls._id_counter
-
-    @classmethod
-    def set_id_counter(cls, new_max_id):
-        cls._id_counter = new_max_id
-
-        
     @staticmethod
     def validate_pass(password: str) -> None:
         """
@@ -481,10 +430,9 @@ class Participant:
                f'Sign up Date = {self.signup_datetime}\n' \
 
 
-
-
 class EventCreator(Person):
     """Osoba odpowiedzialna za utworzenie wydarzenia"""
+
     def add_event(
             self,
             id: int,

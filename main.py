@@ -1,51 +1,19 @@
-import os
+import pendulum
 from classes import Event, Participant, EventCreator, Show, Ticket
-from functions import get_list_from_json, make_test_jsons
 
 
 if __name__ == '__main__':
+    event_creator1 = EventCreator.get_by_id(1)
+    event_creator2 = EventCreator.get_by_id(2)
+    event1 = Event.get_by_id(1)
 
-    if not os.path.exists('jsons/*.json'):
-        make_test_jsons()
+    show1 = Show(1, pendulum.datetime(2024,8,1,18,0), pendulum.datetime(2024, 8,1,20,0),120,1)
+    show1.save()
+    show2 = Show(1, pendulum.datetime(2024, 8, 2, 18, 0), pendulum.datetime(2024, 8, 2, 20, 0), 120, 1)
+    show2.save()
 
-    event_creator_list = get_list_from_json(EventCreator, 'jsons/EventCreator.json')
-    EventCreator.set_id_counter(max(event_creator._id for event_creator in event_creator_list))
 
-    event_list = get_list_from_json(Event, 'jsons/Event.json')
-    Event.set_id_counter(max(event._id for event in event_list))
-
-    participant_list = get_list_from_json(Participant, 'jsons/Participant.json')
-    Participant.set_id_counter(max(participant._id for participant in participant_list))
-
-    show_list = get_list_from_json(Show, 'jsons/Show.json')
-    Show.set_id_counter(max(show._id for show in show_list))
-
-    ticket_list = get_list_from_json(Ticket, 'jsons/Ticket.json')
-    Ticket.set_id_counter(max(ticket._id for ticket in ticket_list))
+    print(event1)
 
 
 
-
-    print(f"{event_list = }")
-
-    print(f"{event_creator_list = }")
-    print(f"{participant_list = }")
-    print(f"{show_list = }")
-    print(f"{ticket_list = }")
-
-
-#custom_exception
-class PasswordError(Exception):
-    pass
-
-
-class UsernameError(Exception):
-    pass
-
-
-class RegisterError(Exception):
-    pass
-
-
-class LoginError(Exception):
-    pass
