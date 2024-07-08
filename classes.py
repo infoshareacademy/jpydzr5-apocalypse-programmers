@@ -12,13 +12,11 @@ class Event:
             self,
             name: str,
             event_type: str,
-            start_time: datetime,
             creator_id: int,
             event_id: int = None,
     ):
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
-        self.start_time = start_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
         self.event_id = event_id
 
@@ -28,26 +26,26 @@ class Event:
 
         if self.event_id is None:
             cursor.execute('''
-                        INSERT INTO event (name, event_type, start_time, creator_id)
+                        INSERT INTO event (name, event_type, creator_id)
                         VALUES (?, ?, ?, ?)
-                    ''', (self._name, self.event_type, self.start_time.to_iso8601_string(), self.creator_id))
+                    ''', (self._name, self.event_type, self.creator_id))
             self.event_id = cursor.lastrowid
         else:
             cursor.execute('''
                         UPDATE event
-                        SET name = ?, event_type = ?, start_time = ?
+                        SET name = ?, event_type = ?
                         WHERE id = ?
-                    ''', (self._name, self.event_type, self.start_time.to_iso8601_string(), self.event_id))
+                    ''', (self._name, self.event_type, self.event_id))
         conn.commit()
 
     @staticmethod
     def get_by_id(event_id):
         conn = DatabaseConnection().get_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT id, name, event_type, start_time, creator_id FROM event WHERE id = ?', (event_id,))
+        cursor.execute('SELECT id, name, event_type, creator_id FROM event WHERE id = ?', (event_id,))
         row = cursor.fetchone()
         if row:
-            return Event(row[1], row[2], row[3], row[4], row[0])
+            return Event(row[1], row[2], row[3], row[0])
         return None
 
     @property
@@ -264,7 +262,8 @@ class Ticket:
         # dic = get_list_from_json()
         del dic[ticket_id]
 
-class Participant:
+
+class Participant(Person):
 
     @staticmethod
     def validate_pass(password: str) -> None:
@@ -438,9 +437,8 @@ class EventCreator(Person):
             id: int,
             name: str,
             event_type: str,
-            start_time: datetime,
     ) -> Event:
-        return Event(id, name, event_type, start_time, self._id)
+        return Event(id, name, event_type, self._id)
 
 
     def del_event(

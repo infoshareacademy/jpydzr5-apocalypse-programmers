@@ -25,7 +25,6 @@ class DatabaseConnection:
                     id INTEGER PRIMARY KEY,
                     name TEXT,
                     event_type TEXT,
-                    start_date DATE,
                     creator_id INTEGER,
                     FOREIGN KEY (creator_id) REFERENCES person(id)
                 )
