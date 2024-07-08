@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pendulum
 from classes import Event, Participant, EventCreator, Show, Ticket
 
@@ -16,12 +18,17 @@ if __name__ == '__main__':
 
     event1 = Event.get_by_id(1)
     if not event1:
-        event1 = Event('Dawid Podsiadło Na Żywo', 'koncert', pendulum.date(2024,8,1),1)
+        event1 = event_creator1.add_event('Dawid Podsiadło Na Żywo', 'koncert')
         event1.save()
 
     show1 = Show.get_by_id((1))
     if not show1:
-        show1 = Show(1, pendulum.datetime(2024,8,1,18,0), pendulum.datetime(2024, 8,1,20,0),120,1)
+        show1 = event_creator1.add_show(
+            event1,
+            pendulum.datetime(2024,8,1,18,0),
+            pendulum.datetime(2024, 8,1,20,0),
+            Decimal('120')
+        )
         show1.save()
 
     show2 = Show.get_by_id((2))
