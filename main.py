@@ -26,8 +26,8 @@ if __name__ == '__main__':
 
 
 
-
     print(f"{event_list = }")
+
     print(f"{event_creator_list = }")
     print(f"{participant_list = }")
     print(f"{show_list = }")

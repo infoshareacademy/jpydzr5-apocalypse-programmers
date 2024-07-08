@@ -316,6 +316,7 @@ class Participant:
     def set_id_counter(cls, new_max_id):
         cls._id_counter = new_max_id
 
+        
     @staticmethod
     def validate_pass(password: str) -> None:
         """
@@ -481,6 +482,7 @@ class Participant:
 
 
 
+
 class EventCreator(Person):
     """Osoba odpowiedzialna za utworzenie wydarzenia"""
     def add_event(
@@ -491,6 +493,7 @@ class EventCreator(Person):
             start_time: datetime,
     ) -> Event:
         return Event(id, name, event_type, start_time, self._id)
+
 
     def del_event(
             self,
