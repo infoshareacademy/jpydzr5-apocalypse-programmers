@@ -1,39 +1,62 @@
 """module with classes"""
 from datetime import datetime
-import sqlite3
-import pendulum
-from tkinter import messagebox
-import random
-import string
-import re
+from decimal import Decimal
+from database_connection import DatabaseConnection
 
-
-def show_message(title, message):
-    """Pokazuje wiadomosci oraz bledy"""
-    messagebox.showerror(title, message)
-
-
-def get_random_string(self):
-    """generuje losowy oraz unikatowy id"""
-    letters = string.ascii_lowercase
-    return ''.join(random.choice(letters) for i in range(8))
 
 class Event:
     """Przodek klas związanych z wydarzeniem"""
+    event_id: int = None
+
     def __init__(
             self,
-            id: int,
             name: str,
             event_type: str,
-            start_time:datetime,
             creator_id: int,
+            event_id: int = None,
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
         self._name = name  # unikalny indentyfikator wydarzenia
         self.event_type = event_type
-        self.start_time = start_time
         self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
+        self.event_id = event_id
 
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        if self.event_id is None:
+            cursor.execute('''
+                        INSERT INTO event (name, event_type, creator_id)
+                        VALUES (?, ?, ?)
+                    ''', (self._name, self.event_type, self.creator_id))
+            self.event_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE event
+                        SET name = ?, event_type = ?
+                        WHERE id = ?
+                    ''', (self._name, self.event_type, self.event_id))
+        conn.commit()
+
+    def delete(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+                        DELETE FROM event
+                        WHERE id = ?
+                    ''', self.event_id)
+        conn.commit()
+
+    @classmethod
+    def get_by_id(cls, event_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, name, event_type, creator_id FROM event WHERE id = ?', (event_id,))
+        row = cursor.fetchone()
+        if row:
+            return cls(row[1], row[2], row[3], row[0])
+        return None
 
     @property
     def name(self) -> str:
@@ -46,199 +69,239 @@ class Event:
     def __str__(self):
         return f"{self._name}"
 
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
-
-    @staticmethod
-    def from_dict(data):
-        event = Event(0,'','',pendulum.now('Europe/Warsaw'),0)
-        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
-
-        for key, value in data.items():
-            if isinstance(value, str) and date_pattern.match(value):
-                try:
-                    value = datetime.fromisoformat(value)
-                except ValueError:
-                    pass
-            setattr(event, key, value)
-
-        return event
 
 class Person:
     """Przodek klas związanych z osobami"""
+    person_id: int = None
     first_name: str = ''
     last_name: str = ''
+
     def __init__(
             self,
-            id: int,
             email: str,
-            password: str
+            password: str,
+            person_id: int = None,
     ):
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
         self.email = email  # unikalny indentyfikator osoby
-        self.password = password
+        self.__password = password
+        self.person_id = person_id
+
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        if self.person_id is None:
+            cursor.execute('''
+                        INSERT INTO person (email, password)
+                        VALUES (?, ?)
+                    ''', (self.email, self.__password))
+            self.person_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE person
+                        SET email = ?, password = ?
+                        WHERE id = ?
+                    ''', (self.email, self.__password, self.person_id))
+        conn.commit()
+
+    def delete(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+                        DELETE FROM person
+                        WHERE id = ?
+                    ''', self.person_id)
+        conn.commit()
+
+    @classmethod
+    def get_by_id(cls, person_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, email, password FROM person WHERE id = ?', (person_id,))
+        row = cursor.fetchone()
+        if row:
+            return cls(row[1], row[2], row[0])
+        return None
+
+    def change_email(self, new_email):
+        self.email = new_email
+        self.save()
+
+    def change_password(self, new_password):
+        self.__password = new_password
+        self.save()
+
+    def match_pass(self, test_password: str) -> bool:
+        """passwords matching
+        """
+        if self.__password == test_password:
+            return True
+        return False
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.email}"
 
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
 
-    @staticmethod
-    def from_dict(data):
-        person = Person(0,'','')
-        date_pattern = re.compile(r'\d{4}-\d{2}-\d{2}')
+class Show:
 
-        for key, value in data.items():
-            if isinstance(value, str) and date_pattern.match(value):
-                try:
-                    value = datetime.fromisoformat(value)
-                except ValueError:
-                    pass
-            setattr(person, key, value)
+    def __init__(self, event_id, start_time, end_time, price, show_id: int = None):
+        self.event_id = event_id
+        self.start_time = start_time
+        self.end_time = end_time
+        self.price = price
+        self.show_id = show_id
 
-        return person
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        if self.show_id is None:
+            cursor.execute('''
+                        INSERT INTO show (event_id, start_time, end_time, price)
+                        VALUES (?, ?, ?, ?)
+                    ''', (
+                self.event_id,
+                self.start_time.to_iso8601_string(),
+                self.end_time.to_iso8601_string(),
+                str(self.price)
+            ))
+            self.show_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE show
+                        SET start_time = ?, end_time = ?, price = ?
+                        WHERE id = ?
+                    ''', (
+                self.start_time.to_iso8601_string(),
+                self.end_time.to_iso8601_string(),
+                str(self.price),
+                self.show_id
+            ))
+        conn.commit()
+
+    def delete(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+                        DELETE FROM show
+                        WHERE id = ?
+                    ''', self.show_id)
+        conn.commit()
+
+    @classmethod
+    def get_by_id(cls, show_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, event_id, start_time, end_time, price FROM show WHERE id = ?', (show_id,))
+        row = cursor.fetchone()
+        if row:
+            return cls(row[1], row[2], row[3], row[4], row[0])
+        return None
+
 
 class Ticket:
-    """Daje Id biletom"""
-    tickets = []
-    for i in tickets:
-        tickets.append(i)
+    def __init__(self, show_id, participant_id, ticket_id: int = None):
+        self.show_id = show_id
+        self.participant_id = participant_id
+        self.ticket_id = ticket_id
 
-    def __init__(
-            self,
-            id: int,
-            event_name: str,
-            participant_id: int,
-            row: str,
-            place: str
-    ):
-        """Pojedynczy bilet"""
-        super().__init__(self)
-        self._id = id  # zamienić na generator identyfikatorow, zeby nie bylo duplikatow
-        self.event_name = event_name  # relacja do wydarzenia
-        self.participant_id = participant_id  # relacja do uczestnika
-        self.row = row
-        self.place = place
+    def save(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
 
-    def to_dict(self):
-        result = vars(self).copy()  # Użyjemy kopii, aby nie modyfikować oryginalnego słownika
-        for key, value in result.items():
-            if isinstance(value, datetime):
-                result[key] = value.isoformat()
-        return result
+        if self.ticket_id is None:
+            cursor.execute('''
+                        INSERT INTO ticket (show_id, participant_id)
+                        VALUES (?, ?)
+                    ''', (self.show_id, self.participant_id))
+            self.ticket_id = cursor.lastrowid
+        else:
+            cursor.execute('''
+                        UPDATE ticket
+                        SET participant_id = ?
+                        WHERE id = ?
+                    ''', (self.participant_id, self.ticket_id))
+        conn.commit()
+
+    def delete(self):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+
+        cursor.execute('''
+                        DELETE FROM ticket
+                        WHERE id = ?
+                    ''', self.ticket_id)
+        conn.commit()
+
+    @classmethod
+    def get_by_id(cls, ticket_id):
+        conn = DatabaseConnection().get_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, show_id, participant_id FROM ticket WHERE id = ?', (ticket_id,))
+        row = cursor.fetchone()
+        if row:
+            return cls(row[1], row[2], row[0])
+        return None
+
+    def cancel_ticket(self) -> None:
+        self.delete()
+
 
 class Participant(Person):
-    """Uczestnik wydarzenia"""
-    def show_events(
-            self,
-            name: str,
-            event_type: str,
-            start_time: datetime,
-    ) -> Event:
-        return Event(name, event_type, start_time)
+    def buy_ticket(self, show: Show) -> Ticket:
+        ticket = Ticket(show.show_id, self.person_id)
+        ticket.save()
+        return ticket
 
-    event_list = []
-
-    for info in event_list:
-        print(info.name, info.event_type, info.start_time)
-
-    def buy_ticket(self):
-        while True:
-            global tickets_id
-            t_id = get_random_string()
-            if t_id not in tickets_id:
-                ticket_id.set(get_random_string())
-                break
-            continue
-
-        def buy_ticket_now():
-            if len(name.get()) < 5 or len(ticket_date.get()) < 7 or len(ticket_validity.get()) < 7:
-                show_message('Error', 'Enter valid details')
-                return
-            try:
-                """pobiera dane z bazy"""
-                # conn = sqlite3.connect("ticket_booking_database.db")
-                # cursor = conn.cursor()
-                # cursor.execute("INSERT INTO ticket (name, ticket_id, ticket_date, ticket_validity) VALUES (?, ?, ?, ?)", (str(name.get()), str(ticket_id.get()), str(ticket_date.get()), str(ticket_validity.get())))
-                # conn.commit()
-                # show_message('Successful', 'Your booking is successful, your ticket id is {}'.format(ticket_id.get()))
-                # top1.destroy()
-            except sqlite3.Error as e:
-                pass
-            # show_message('Error', e)
-            finally:
-                pass
-        # conn.close()
-
-    def return_ticket(
-            self,
-            ticket: Ticket,
-    ) -> None:
-        del Ticket
-
-        def delete_rows(ticket_id):
-            try:
-                conn = sqlite3.connect("ticket_booking_database.db")
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM ticket WHERE ticket_id = ?", (ticket_id,))
-                conn.commit()
-                show_message('Success', 'Ticket deleted')
-                conn.close()
-            except sqlite3.Error as e:
-                show_message('Sqlite error', e)
-            finally:
-                conn.close()
-
-        conn = sqlite3.connect('ticket_booking_database.db')
-        cursor = conn.cursor()
-
-    def show_my_tickets(self):
-        conn = sqlite3.connect('ticket_booking_database.db')
-        cursor = conn.cursor()
-
-        cursor.execute('SELECT * FROM ticket')
-        tickets = cursor.fetchall()
-        for i in range(len(tickets)):
-        #    """podaje przyklad jak sam mam:"""
-        #    """Label(top2, text=tickets[i][0], borderwidth=1, relief="solid", width=20).grid(row=i + 1, column=0)
-        #    Label(top2, text=tickets[i][1], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=1)
-        #    Label(top2, text=tickets[i][2], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=2)
-        #    Label(top2, text=tickets[i][3], borderwidth=1, relief="solid", width=20).grid(row=i + 1, padx=10, column=3)"""
-        #    """
-            top2.mainloop()
-            conn.close()
-
+    def __str__(self) -> str:
+        """
+        this is class str for present class object.
+        :return: public information.
+        """
+        return f'{self.first_name} {self.last_name} [{self.email}]'
 
 
 class EventCreator(Person):
     """Osoba odpowiedzialna za utworzenie wydarzenia"""
+
     def add_event(
             self,
-            id: int,
             name: str,
             event_type: str,
-            start_time: datetime,
     ) -> Event:
-        return Event(id, name, event_type, start_time, self._id)
+        event = Event(name, event_type, self.person_id)
+        event.save()
+        return event
 
     def del_event(
             self,
             event: Event,
     ) -> None:
-        del Event
+        event.delete()
 
     def rename_event(
             self,
             event: Event,
             new_name: str,
     ) -> None:
-        Event.name = new_name
+        event.name = new_name
+        event.save()
+
+    def del_show(
+            self,
+            show: Show,
+    ):
+        show.delete()
+
+    def add_show(
+            self,
+            event: Event,
+            start_time: datetime,
+            end_time: datetime,
+            price: Decimal,
+    ) -> Show:
+        show = Show(event.event_id, start_time, end_time, price)
+        show.save()
+        return show

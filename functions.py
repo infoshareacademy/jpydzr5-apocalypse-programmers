@@ -1,11 +1,13 @@
 from typing import List
-from classes import EventCreator, Participant, Ticket
+from classes import *
 import pendulum
 import os
 
+
 import json
 
-def get_list_from_json(cls: object, file_name: str):
+
+def get_list_from_json(cls: object, file_name: str) -> dict:
     """wczytuje listę z pliku json"""
     if cls is None or not hasattr(cls, 'from_dict'):
         raise ValueError(f"No class named '{cls}' with a 'from_dict' method found")
@@ -14,7 +16,8 @@ def get_list_from_json(cls: object, file_name: str):
         data = json.load(json_file)
         return [cls.from_dict(item) for item in data]
 
-def save_objects_to_json(filename: str, data: List) -> bool:
+
+def save_objects_to_json(filename: dict, data: List) -> bool:
     """ zapisuje listę do pliku json
 
     metoda uniwersalna dla wszystkich obiektów"""
@@ -42,9 +45,8 @@ def make_test_jsons():
     file_path = 'jsons/Participant.json'
 
     if not os.path.exists(file_path):
-
-        participant1 = Participant(1, 'participant1@gmail.com', 'abcd')
-        participant2 = Participant(2, 'participant2@wp.pl', '1234')
+        participant1 = Participant("Drake", 'dcba', '10:10:2024')
+        participant2 = Participant("Karol", '4321', '21:12:2024')
 
         save_objects_to_json(
             file_path,
@@ -66,5 +68,35 @@ def make_test_jsons():
                                            pendulum.datetime(2024, 10, 1, 19).in_timezone('Europe/Warsaw'))]
         )
     # @Maksym - tu dopisz swoje obiekty
+
+    file_path = 'jsons/Ticket.json'
+
+    if not os.path.exists(file_path):
+        ticket1 = Ticket("1", "1", "1")
+        ticket2 = Ticket("2","2","2")
+
+        save_objects_to_json(
+            file_path,
+            [ticket1, ticket2, ],
+
+        )
+
+    file_path = 'jsons/Show.json'
+
+    if not os.path.exists(file_path):
+        show1 = Show.add_show(1, '15:00:00', '19:00:00', 150,'01/10/2022')
+        show2 = Show.add_show(2, '19:00:00', '22:00:00', 200, '01/10/2022')
+
+        save_objects_to_json(
+            file_path,
+            [show1, show2, ],
+
+        )
+
+
+
+
+
+
 
 
