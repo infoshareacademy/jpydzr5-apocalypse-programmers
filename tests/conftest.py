@@ -1,11 +1,11 @@
 import pytest
-from database_connection import DatabaseConnection
+from database import Database
 
 
 @pytest.fixture(scope='session')
 def db():
-    connection = DatabaseConnection('tests.db')
+    db = Database('tests.db')
 
-    yield connection.get_connection()
+    yield db
 
-    connection.get_connection().close()
+    db.close()
