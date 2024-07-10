@@ -58,7 +58,3 @@ class DatabaseConnection:
     def get_connection(self):
         return self._instance._conn
 
-    def close_connection(self):
-        if self._instance and self._instance._conn:
-            self._instance._conn.close()
-            self._instance = None
