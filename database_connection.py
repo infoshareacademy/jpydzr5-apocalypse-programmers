@@ -2,13 +2,13 @@ import sqlite3
 
 
 class DatabaseConnection:
-    _instance = None
+    _instances = {}
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(DatabaseConnection, cls).__new__(cls)
-            cls._instance._conn = sqlite3.connect('ticket_system.db')
-            cursor = cls._instance._conn.cursor()
+    def __new__(cls, db_filename='ticket_system.db'):
+        if db_filename not in cls._instances:
+            instance = super(DatabaseConnection, cls).__new__(cls)
+            instance._conn = sqlite3.connect(db_filename)
+            cursor = instance._conn.cursor()
 
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS person (
@@ -51,10 +51,11 @@ class DatabaseConnection:
                     )
                     ''')
 
-            cls._instance._conn.commit()
+            instance._conn.commit()
+            cls._instances[db_filename] = instance
 
-        return cls._instance
+        return cls._instances[db_filename]
 
     def get_connection(self):
-        return self._instance._conn
+        return self._conn
 

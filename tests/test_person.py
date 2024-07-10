@@ -3,12 +3,6 @@ from classes import *
 from database_connection import DatabaseConnection
 
 @pytest.fixture
-def db():
-    connection = DatabaseConnection()
-    yield connection
-    connection.get_connection().close()
-
-@pytest.fixture
 def person(db):
     person = Person("test@example.com", "password123")
     person.save()

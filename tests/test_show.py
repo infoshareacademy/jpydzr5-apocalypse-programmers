@@ -5,12 +5,6 @@ from datetime import datetime
 from decimal import Decimal
 
 @pytest.fixture
-def db():
-    connection = DatabaseConnection()
-    yield connection
-    connection.get_connection().close()
-
-@pytest.fixture
 def show(db):
     start_time = datetime.now()
     end_time = datetime.now()
