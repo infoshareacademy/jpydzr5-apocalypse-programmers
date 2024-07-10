@@ -57,3 +57,4 @@ class DatabaseConnection:
 
     def get_connection(self):
         return self._instance._conn
+
