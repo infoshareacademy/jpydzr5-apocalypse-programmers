@@ -1,6 +1,7 @@
+import pendulum
 import pytest
 from classes import *
-from database_connection import DatabaseConnection
+from decimal import Decimal
 
 
 @pytest.fixture
@@ -15,11 +16,7 @@ def test_participant_creation(participant):
 
 
 def test_participant_buy_ticket(participant):
-    from classes import Show
-    from datetime import datetime
-    from decimal import Decimal
-
-    show = Show(1, datetime.now(), datetime.now(), Decimal('99.99'))
+    show = Show(1, pendulum.now('Europe/Warsaw'), pendulum.now('Europe/Warsaw'), Decimal('99.99'))
     show.save()
     ticket = participant.buy_ticket(show)
     assert ticket.ticket_id is not None

@@ -45,7 +45,7 @@ class Event:
         cursor.execute('''
                         DELETE FROM event
                         WHERE id = ?
-                    ''', self.event_id)
+                    ''', (self.event_id,))
         conn.commit()
 
     @classmethod
@@ -111,7 +111,7 @@ class Person:
         cursor.execute('''
                         DELETE FROM person
                         WHERE id = ?
-                    ''', self.person_id)
+                    ''', (self.person_id,))
         conn.commit()
 
     @classmethod
@@ -187,7 +187,7 @@ class Show:
         cursor.execute('''
                         DELETE FROM show
                         WHERE id = ?
-                    ''', self.show_id)
+                    ''', (self.show_id,))
         conn.commit()
 
     @classmethod
@@ -222,7 +222,7 @@ class Ticket:
                         UPDATE ticket
                         SET participant_id = ?
                         WHERE id = ?
-                    ''', (self.participant_id, self.ticket_id))
+                    ''', (self.participant_id, self.ticket_id,))
         conn.commit()
 
     def delete(self):
@@ -232,7 +232,7 @@ class Ticket:
         cursor.execute('''
                         DELETE FROM ticket
                         WHERE id = ?
-                    ''', self.ticket_id)
+                    ''', (self.ticket_id,))
         conn.commit()
 
     @classmethod
