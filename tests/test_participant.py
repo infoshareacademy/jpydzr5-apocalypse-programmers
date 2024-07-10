@@ -9,8 +9,10 @@ def participant(db):
     participant.save()
     return participant
 
+
 def test_participant_creation(participant):
     assert participant.person_id is not None
+
 
 def test_participant_buy_ticket(participant):
     from classes import Show
