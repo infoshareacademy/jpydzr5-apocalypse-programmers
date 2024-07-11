@@ -65,12 +65,19 @@ class Database:
                         WHERE id = ?
                     ''', (email, password, person_id))
 
-    def get_person(self, person_id):
+    def get_person_by_id(self, person_id):
         cursor = self.conn.execute("SELECT id, email, password FROM person WHERE id = ?", (person_id,))
         return cursor.fetchone()
 
     def delete_person(self, person_id):
         self.conn.execute("DELETE FROM person WHERE id = ?", (person_id,))
+
+    def login_person(self, email, password):
+        cursor = self.conn.execute(
+            "SELECT id, email, password FROM person WHERE email = ? AND password = ?",
+            (email, password,)
+        )
+        return cursor.fetchone()
 
     def add_show(self, event_id, start_time, end_time, price) -> int:
         with self.conn:
@@ -98,7 +105,7 @@ class Database:
                 show_id
             ))
 
-    def get_show(self, show_id):
+    def get_show_by_id(self, show_id):
         cursor = self.conn.execute("SELECT id, event_id, start_time, end_time, price FROM show WHERE id = ?", (show_id,))
         row = cursor.fetchone()
 
@@ -128,7 +135,7 @@ class Database:
                         WHERE id = ?
                     ''', (participant_id, ticket_id,))
 
-    def get_ticket(self, ticket_id):
+    def get_ticket_by_id(self, ticket_id):
         cursor = self.conn.execute("SELECT id, show_id, participant_id FROM ticket WHERE id = ?", (ticket_id,))
         return cursor.fetchone()
 
@@ -150,9 +157,13 @@ class Database:
                         WHERE id = ?
                     ''', (name, event_type, event_id))
 
-    def get_event(self, event_id):
+    def get_event_by_id(self, event_id):
         cursor = self.conn.execute("SELECT id, name, event_type, creator_id  FROM event WHERE id = ?", (event_id,))
         return cursor.fetchone()
+
+    def get_events_by_creator_id(self, creator_id):
+        cursor = self.conn.execute("SELECT id FROM event WHERE creator_id = ?", (creator_id,))
+        return cursor.fetchall()
 
     def delete_event(self, event_id):
         self.conn.execute("DELETE FROM event WHERE id = ?", (event_id,))

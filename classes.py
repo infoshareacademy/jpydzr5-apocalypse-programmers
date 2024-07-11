@@ -22,7 +22,7 @@ class Event:
         else:
             self.event_id = self.db.add_event(name, event_type, creator_id)
 
-        self.event_id, self._name, self.event_type, self.creator_id = self.db.get_event(self.event_id)
+        self.event_id, self._name, self.event_type, self.creator_id = self.db.get_event_by_id(self.event_id)
 
     def delete(self):
         self.db.delete_event(self.event_id)
@@ -32,7 +32,7 @@ class Event:
 
     @classmethod
     def get_by_id(cls, db, event_id):
-        row = db.get_event(event_id)
+        row = db.get_event_by_id(event_id)
         if row:
             return cls(db, row[1], row[2], row[3], row[0])
         return None
@@ -70,7 +70,7 @@ class Person:
         else:
             self.person_id = self.db.add_person(email, password)
 
-        self.person_id, self.email, self.__password = self.db.get_person(self.person_id)
+        self.person_id, self.email, self.__password = self.db.get_person_by_id(self.person_id)
 
     def delete(self):
         self.db.delete_person(self.person_id)
@@ -80,7 +80,7 @@ class Person:
 
     @classmethod
     def get_by_id(cls, db, person_id):
-        row = db.get_person(person_id)
+        row = db.get_person_by_id(person_id)
         if row:
             return cls(db, row[1], row[2], row[0])
         return None
@@ -93,12 +93,13 @@ class Person:
         self.__password = new_password
         self.update()
 
-    def match_pass(self, test_password: str) -> bool:
-        """passwords matching
-        """
-        if self.__password == test_password:
-            return True
-        return False
+    @classmethod
+    def login_person(cls, db, email, test_password: str):
+        row = db.login_person(email, test_password)
+        if row:
+            return cls(db, row[1], row[2], row[0])
+        return None
+
 
     def __str__(self):
         return f"{self.email}"
@@ -121,8 +122,7 @@ class Show:
         else:
             self.show_id = self.db.add_show(event_id, start_time, end_time, price)
 
-        self.show_id, self.event_id, self._start_time, self._end_time, self._price = self.db.get_show(self.show_id)
-
+        self.show_id, self.event_id, self._start_time, self._end_time, self._price = self.db.get_show_by_id(self.show_id)
 
     def delete(self):
         self.db.delete_show(self.show_id)
@@ -159,7 +159,7 @@ class Show:
 
     @classmethod
     def get_by_id(cls, db, show_id):
-        row = db.get_show(show_id)
+        row = db.get_show_by_id(show_id)
         if row:
             return cls(db, row[1], row[2], row[3], row[4], row[0])
         return None
@@ -180,7 +180,7 @@ class Ticket:
         else:
             self.ticket_id = self.db.add_ticket(show_id, participant_id)
 
-        self.ticket_id, self.show_id, self.participant_id = self.db.get_ticket(self.ticket_id)
+        self.ticket_id, self.show_id, self.participant_id = self.db.get_ticket_by_id(self.ticket_id)
 
     def delete(self):
         self.db.delete_ticket(self.ticket_id)
@@ -190,7 +190,7 @@ class Ticket:
 
     @classmethod
     def get_by_id(cls, db, ticket_id):
-        row = db.get_ticket(ticket_id)
+        row = db.get_ticket_by_id(ticket_id)
         if row:
             return cls(db, row[1], row[2], row[0])
         return None
@@ -220,6 +220,13 @@ class EventCreator(Person):
             event_type: str,
     ) -> Event:
         return Event(self.db, name, event_type, self.person_id)
+
+    def get_my_events(self):
+        result = []
+        for row in self.db.get_events_by_creator_id(self.person_id):
+            result.append(Event.get_by_id(self.db, row[0]))
+
+        return result
 
     def del_event(
             self,
