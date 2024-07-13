@@ -1,5 +1,7 @@
+import pendulum
+from decimal import Decimal
+from classes import EventCreator, Participant, Event, Show, Ticket
 
-from classes import EventCreator, Participant
 
 # Ogólna funkcja menu dla powtarzających się opcji
 def menu(title, options):
@@ -14,6 +16,7 @@ def menu(title, options):
             options[choice][1]()
         else:
             print("Niepoprawny wybór, spróbuj ponownie.")
+
 
 def create_event(event_creator):
     print("Tworzenie wydarzenia...")
@@ -58,7 +61,7 @@ def show_events(event_creator):
         print(f"{event.event_id}. {event.name} ({event.event_type})")
 
 
-def buy_ticket(db):
+def buy_ticket(db, participant):
     print("Kupowanie biletu...")
     show_id = int(input("Podaj ID pokazu: "))
     show = Show.get_by_id(show_id)
@@ -69,7 +72,7 @@ def buy_ticket(db):
         print("Nie znaleziono pokazu.")
 
 
-def return_ticket(db):
+def return_ticket(db, participant):
     print("Zwracanie biletu...")
     ticket_id = int(input("Podaj ID biletu do zwrotu: "))
     ticket = Ticket.get_by_id(ticket_id)
@@ -84,13 +87,13 @@ def show_my_tickets(db):
     print("Wyświetlanie moich biletów... (do zaimplementowania)")
 
 
-def create_show(db): 
+def create_show(db, event_creator):
     print("Tworzenie pokazu...")
     event_id = int(input("Podaj ID wydarzenia: "))
     event = Event.get_by_id(event_id)
     if event:
-        start_time = datetime.strptime(input("Podaj czas rozpoczęcia (YYYY-MM-DD HH:MM): "), "%Y-%m-%d %H:%M")
-        end_time = datetime.strptime(input("Podaj czas zakończenia (YYYY-MM-DD HH:MM): "), "%Y-%m-%d %H:%M")
+        start_time = pendulum.parse(input("Podaj czas rozpoczęcia (YYYY-MM-DD HH:MM): "))
+        end_time = pendulum.parse(input("Podaj czas zakończenia (YYYY-MM-DD HH:MM): "))
         price = Decimal(input("Podaj cenę biletu: "))
         event_creator.add_show(event, start_time, end_time, price)
         print("Pokaz utworzony.")
@@ -101,7 +104,7 @@ def create_show(db):
 def edit_show(db): print("Edycja pokazu...")
 
 
-def delete_show(db): 
+def delete_show(db, event_creator):
     print("Usuwanie pokazu...")
     show_id = int(input("Podaj ID pokazu do usunięcia: "))
     show = Show.get_by_id(show_id)

@@ -51,8 +51,8 @@ def fill_if_empty(db):
 
 if __name__ == '__main__':
 
-    db = Database('ticket_system.db')
+    database = Database('ticket_system.db')
 
-    fill_if_empty(db)
+    fill_if_empty(database)
 
-    main_menu(db)
+    main_menu(database)
