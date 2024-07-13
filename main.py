@@ -13,7 +13,7 @@ def fill_if_empty(db):
 
     event_creator2 = EventCreator.get_by_id(db, 2)
     if not event_creator2:
-        event_creator2 = EventCreator(db, 'test1@example.com', 'password1')
+        EventCreator(db, 'test1@example.com', 'password1')
 
     event1 = Event.get_by_id(db, 1)
     if not event1:
@@ -21,7 +21,7 @@ def fill_if_empty(db):
 
     event2 = Event.get_by_id(db, 2)
     if not event2:
-        event2 = event_creator1.create_event('Andrea Bocelli', 'koncert')
+        event_creator1.create_event('Andrea Bocelli', 'koncert')
 
     show1 = Show.get_by_id(db, 1)
     if not show1:
@@ -34,7 +34,7 @@ def fill_if_empty(db):
 
     show2 = Show.get_by_id(db, 2)
     if not show2:
-        show2 = event1.create_show(
+        event1.create_show(
             'Kraków',
             pendulum.datetime(2024, 8, 2, 18, 0),
             pendulum.datetime(2024, 8, 2, 20, 0),
@@ -47,7 +47,7 @@ def fill_if_empty(db):
 
     ticket1 = Ticket.get_by_id(db, 1)
     if not ticket1:
-        ticket1 = participant1.buy_ticket(show1)
+        participant1.buy_ticket(show1)
 
 
 if __name__ == '__main__':

@@ -119,6 +119,13 @@ class Database:
         cursor = self.conn.execute("SELECT id FROM show WHERE event_id = ?", (event_id,))
         return cursor.fetchall()
 
+    def get_shows_with_enough_tickets(self, event_id, requested_tickets):
+        # TODO: dodać filtr wystarczającej liczbę biletów
+        cursor = self.conn.execute("SELECT id FROM show WHERE event_id = ?", (event_id,))
+        return cursor.fetchall()
+
+
+
     def delete_show(self, show_id):
         self.conn.execute("DELETE FROM show WHERE id = ?", (show_id,))
 
@@ -163,6 +170,16 @@ class Database:
                         WHERE id = ?
                     ''', (name, event_type, event_id))
 
+    def get_tickets(self, participant_id):
+        cursor = self.conn.execute("""
+            SELECT ticket.id, event_id, show_id
+            FROM ticket
+              INNER JOIN show
+                ON ticket.show_id=show.id
+            WHERE participant_id = ?""",
+                                   (participant_id,))
+        return cursor.fetchall()
+
     def get_event_by_id(self, event_id):
         cursor = self.conn.execute("SELECT id, name, event_type, creator_id  FROM event WHERE id = ?", (event_id,))
         return cursor.fetchone()
@@ -170,6 +187,12 @@ class Database:
     def get_events_by_creator_id(self, creator_id):
         cursor = self.conn.execute("SELECT id FROM event WHERE creator_id = ?", (creator_id,))
         return cursor.fetchall()
+
+    def get_available_events(self):
+        # TODO: dodać filtr, żeby wydarzenia które już były lub które nie mają wolnych biletów się nie wyświetlały
+        cursor = self.conn.execute("SELECT id FROM event")
+        return cursor.fetchall()
+
 
     def delete_event(self, event_id):
         self.conn.execute("DELETE FROM event WHERE id = ?", (event_id,))

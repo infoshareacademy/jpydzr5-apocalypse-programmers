@@ -53,6 +53,13 @@ class Person:
             return cls(db, row[1], row[2], row[0])
         return None
 
+    def get_available_events(self):
+        result = []
+        for row in self.db.get_available_events():
+            result.append(Event.get_by_id(self.db, row[0]))
+
+        return result
+
     def __str__(self):
         return f"{self.email}"
 
@@ -75,7 +82,8 @@ class Show:
         else:
             self.show_id = self.db.create_show(event_id, name, start_time, end_time, price)
 
-        self.show_id, self.event_id, self._name, self._start_time, self._end_time, self._price = self.db.get_show_by_id(self.show_id)
+        self.show_id, self.event_id, self._name, self._start_time, self._end_time, self._price \
+            = self.db.get_show_by_id(self.show_id)
 
     def delete(self):
         self.db.delete_show(self.show_id)
@@ -130,7 +138,8 @@ class Show:
         return f"{self.show_id}. {self._name} {self._start_time}-{self._end_time}"
 
     def list_item(self):
-        return f"{self.show_id}. {self._name} od {self._start_time.format("YYYY-MM-DD HH:mm")} do {self._end_time.format("YYYY-MM-DD HH:mm")}, cena: {self._price}"
+        return (f"{self.show_id}. {self._name} od {self._start_time.format("YYYY-MM-DD HH:mm")}"
+                f" do {self._end_time.format("YYYY-MM-DD HH:mm")}, cena: {self._price}")
 
 
 class Event:
@@ -194,9 +203,15 @@ class Event:
     ) -> Show:
         return Show(self.db, self.event_id, name, start_time, end_time, price)
 
-    def get_my_shows(self):
+    def get_shows(self, requested_tickets=0):
         result = []
-        for row in self.db.get_shows_by_event_id(self.event_id):
+
+        if requested_tickets > 0:
+            rows = self.db.get_shows_with_enough_tickets(self.event_id, requested_tickets)
+        else:
+            rows = self.db.get_shows_by_event_id(self.event_id)
+
+        for row in rows:
             result.append(Show.get_by_id(self.db, row[0]))
 
         return result
@@ -239,6 +254,16 @@ class Ticket:
 class Participant(Person):
     def buy_ticket(self, show: Show) -> Ticket:
         return Ticket(self.db, show.show_id, self.person_id)
+
+    def get_my_tickets(self):
+        result = []
+        for row in self.db.get_tickets(self.person_id):
+            result.append((
+                Ticket.get_by_id(self.db, row[0]),
+                Event.get_by_id(self.db, row[1]),
+                Show.get_by_id(self.db, row[2]),
+            ))
+        return result
 
     def __str__(self) -> str:
         """

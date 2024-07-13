@@ -101,6 +101,26 @@ def duplicate_event(event_creator):
     return
 
 
+def show_available_events(participant, press_enter=True):
+    print(menu_header('Lista wydarzeń'))
+    events = participant.get_available_events()
+    for event in events:
+        print(f"{event.event_id}. {event.name} ({event.event_type})")
+    if press_enter:
+        input('Naciśnij ENTER by kontynuować')
+    return
+
+
+def show_available_shows(event, press_enter=True):
+    print(menu_header('Lista pokazów '))
+    shows = event.get_shows(1)
+    for show in shows:
+        print(f"{show.list_item()}")
+    if press_enter:
+        input('Naciśnij ENTER by kontynuować')
+    return
+
+
 def show_events(event_creator, press_enter=True):
     print(menu_header('Lista wydarzeń'))
     events = event_creator.get_my_events()
@@ -127,8 +147,17 @@ def go_to_event_menu(event_creator):
     return
 
 
-def buy_ticket(db, participant):
+def buy_ticket(participant):
     print(menu_header('Kupowanie biletu'))
+    show_available_events(participant, False)
+    try:
+        event_id = int(input("Podaj ID wydarzenia: "))
+    except ValueError:
+        print("nieprawidłowa wartość")
+        return
+    event = Event.get_by_id(participant.db, event_id)
+
+    show_available_shows(event, False)
     try:
         show_id = int(input("Podaj ID pokazu: "))
     except ValueError:
@@ -136,15 +165,18 @@ def buy_ticket(db, participant):
         return
 
     show = Show.get_by_id(participant.db, show_id)
+
     if show:
-        ticket = participant.buy_ticket(show)
+        participant.buy_ticket(show)
         print("Bilet kupiony.")
     else:
         print("Nie znaleziono pokazu.")
+
     return
 
 
-def return_ticket(db, participant):
+def return_ticket(participant):
+    show_my_tickets(participant)
     print(menu_header('Zwrot biletu'))
     try:
         ticket_id = int(input("Podaj ID biletu do zwrotu: "))
@@ -161,9 +193,10 @@ def return_ticket(db, participant):
     return
 
 
-def show_my_tickets(db):
+def show_my_tickets(participant):
     print(menu_header('Lista moich biletów'))
-    print("TODO: Wyświetlanie moich biletów")
+    for ticket in participant.get_my_tickets():
+        print(f"{ticket[0].ticket_id}. {ticket[1].name} ({ticket[1].event_type}), {ticket[2].name}, start: {ticket[2].start_time}, price: {ticket[2].price}")
     return
 
 
@@ -258,7 +291,7 @@ def duplicate_show(event):
 def show_shows(event, press_enter=True):
     print(menu_header(f"{event.name} ({event.event_type})"))
     print(menu_header('Lista pokazów', False))
-    shows = event.get_my_shows()
+    shows = event.get_shows()
     for show in shows:
         print(f"{show.list_item()}")
     if press_enter:
@@ -337,10 +370,10 @@ def event_menu(event):
 # Funkcja głównego menu dla Participant
 def participant_menu(participant):
     options = {
-        '1': ("Wyświetl listę wydarzeń", show_events(participant),),
-        '2': ("Kup bilet", buy_ticket(participant),),
-        '3': ("Zwróć bilet", return_ticket(participant),),
-        '4': ("Pokaż moje bilety", show_my_tickets(participant),),
+        '1': ("Wyświetl listę wydarzeń", lambda: show_available_events(participant),),
+        '2': ("Kup bilet", lambda: buy_ticket(participant),),
+        '3': ("Zwróć bilet", lambda: return_ticket(participant),),
+        '4': ("Pokaż moje bilety", lambda: show_my_tickets(participant),),
         '0': ("Powrót do głównego menu (wyloguj)", lambda: main_menu(participant.db),)
     }
-    menu("Participant ({person.person_id})", options)
+    menu(f"Participant ({participant.person_id})", options)
