@@ -30,7 +30,7 @@ def create_event(event_creator):
 def edit_event(event_creator):
     print("Edycja wydarzenia...")
     event_id = int(input("Podaj ID wydarzenia do edycji: "))
-    event = Event.get_by_id(event_id)
+    event = Event.get_by_id(event_creator.db, event_id)
     if event:
         new_name = input("Podaj nową nazwę wydarzenia: ")
         event_creator.rename_event(event, new_name)
@@ -42,7 +42,7 @@ def edit_event(event_creator):
 def delete_event(event_creator):
     print("Usuwanie wydarzenia...")
     event_id = int(input("Podaj ID wydarzenia do usunięcia: "))
-    event = Event.get_by_id(event_id)
+    event = Event.get_by_id(event_creator.db, event_id)
     if event:
         event_creator.del_event(event)
         print("Wydarzenie usunięte.")
@@ -64,7 +64,7 @@ def show_events(event_creator):
 def buy_ticket(db, participant):
     print("Kupowanie biletu...")
     show_id = int(input("Podaj ID pokazu: "))
-    show = Show.get_by_id(show_id)
+    show = Show.get_by_id(participant.db, show_id)
     if show:
         ticket = participant.buy_ticket(show)
         print("Bilet kupiony.")
@@ -75,7 +75,7 @@ def buy_ticket(db, participant):
 def return_ticket(db, participant):
     print("Zwracanie biletu...")
     ticket_id = int(input("Podaj ID biletu do zwrotu: "))
-    ticket = Ticket.get_by_id(ticket_id)
+    ticket = Ticket.get_by_id(participant.db, ticket_id)
     if ticket:
         ticket.cancel_ticket()
         print("Bilet zwrócony.")
@@ -90,7 +90,7 @@ def show_my_tickets(db):
 def create_show(db, event_creator):
     print("Tworzenie pokazu...")
     event_id = int(input("Podaj ID wydarzenia: "))
-    event = Event.get_by_id(event_id)
+    event = Event.get_by_id(event_creator.db, event_id)
     if event:
         start_time = pendulum.parse(input("Podaj czas rozpoczęcia (YYYY-MM-DD HH:MM): "))
         end_time = pendulum.parse(input("Podaj czas zakończenia (YYYY-MM-DD HH:MM): "))
@@ -107,7 +107,7 @@ def edit_show(db): print("Edycja pokazu...")
 def delete_show(db, event_creator):
     print("Usuwanie pokazu...")
     show_id = int(input("Podaj ID pokazu do usunięcia: "))
-    show = Show.get_by_id(show_id)
+    show = Show.get_by_id(event_creator.db, show_id)
     if show:
         event_creator.del_show(show)
         print("Pokaz usunięty.")
