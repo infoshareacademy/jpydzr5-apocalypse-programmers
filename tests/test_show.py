@@ -6,9 +6,10 @@ from decimal import Decimal
 
 @pytest.fixture
 def show(db):
+    name = 'test show'
     start_time = pendulum.now('Europe/Warsaw')
     end_time = pendulum.now('Europe/Warsaw')
-    return Show(db,1, start_time, end_time, Decimal('99.99'))
+    return Show(db,1, name, start_time, end_time, Decimal('99.99'))
 
 
 def test_show_creation(show):
