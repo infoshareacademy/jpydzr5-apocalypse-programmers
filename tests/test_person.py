@@ -17,11 +17,12 @@ def test_person_retrieval(db, person):
 
 
 def test_person_update(db, person):
-    person.change_email("new@example.com")
-    person.change_password("newpassword123")
-    updated_person = Person.get_by_id(db, person.person_id)
-    assert updated_person.email == "new@example.com"
-    assert updated_person.match_pass("newpassword123")
+    email = "new@example.com"
+    password = "newpassword123"
+    person.change_email(email)
+    person.change_password(password)
+    logged_person = person.login_person(db, email, password)
+    assert person.person_id == logged_person.person_id
 
 
 def test_person_deletion(db, person):
