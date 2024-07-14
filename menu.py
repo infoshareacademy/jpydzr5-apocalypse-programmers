@@ -102,6 +102,7 @@ def duplicate_event(event_creator):
 
 
 def show_available_events(participant, press_enter=True):
+    clear_screen()
     print(menu_header('Lista wydarzeń'))
     events = participant.get_available_events()
     for event in events:
@@ -112,6 +113,7 @@ def show_available_events(participant, press_enter=True):
 
 
 def show_available_shows(event, press_enter=True):
+    clear_screen()
     print(menu_header('Lista pokazów '))
     shows = event.get_shows(1)
     for show in shows:
@@ -122,6 +124,7 @@ def show_available_shows(event, press_enter=True):
 
 
 def show_events(event_creator, press_enter=True):
+    clear_screen()
     print(menu_header('Lista wydarzeń'))
     events = event_creator.get_my_events()
     for event in events:
@@ -132,6 +135,7 @@ def show_events(event_creator, press_enter=True):
 
 
 def go_to_event_menu(event_creator):
+    show_events(event_creator, False)
     print(menu_header('Edycja wydarzenia'))
     try:
         event_id = int(input("Podaj ID wydarzenia do edycji: "))
@@ -289,6 +293,7 @@ def duplicate_show(event):
 
 
 def show_shows(event, press_enter=True):
+    clear_screen()
     print(menu_header(f"{event.name} ({event.event_type})"))
     print(menu_header('Lista pokazów', False))
     shows = event.get_shows()
