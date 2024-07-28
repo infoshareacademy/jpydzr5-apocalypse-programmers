@@ -1,51 +1,59 @@
-from decimal import Decimal
-
 import pendulum
 from classes import Event, Participant, EventCreator, Show, Ticket
+from decimal import Decimal
+from database import Database
+from menu import main_menu
 
 
-if __name__ == '__main__':
+def fill_if_empty(db):
 
-    event_creator1 = EventCreator.get_by_id(1)
+    event_creator1 = EventCreator.get_by_id(db, 1)
     if not event_creator1:
-        event_creator1 = EventCreator('test1@example.com', 'password1')
-        event_creator1.save()
+        event_creator1 = EventCreator(db, 'test1@example.com', 'password1')
 
-    event_creator2 = EventCreator.get_by_id(2)
+    event_creator2 = EventCreator.get_by_id(db, 2)
     if not event_creator2:
-        event_creator2 = EventCreator('test1@example.com', 'password1')
-        event_creator2.save()
+        EventCreator(db, 'test1@example.com', 'password1')
 
-    event1 = Event.get_by_id(1)
+    event1 = Event.get_by_id(db, 1)
     if not event1:
-        event1 = event_creator1.add_event('Dawid Podsiadło Na Żywo', 'koncert')
-        event1.save()
+        event1 = event_creator1.create_event('Dawid Podsiadło Na Żywo', 'koncert')
 
-    show1 = Show.get_by_id(1)
+    event2 = Event.get_by_id(db, 2)
+    if not event2:
+        event_creator1.create_event('Andrea Bocelli', 'koncert')
+
+    show1 = Show.get_by_id(db, 1)
     if not show1:
-        show1 = event_creator1.add_show(
-            event1,
+        show1 = event1.create_show(
+            'Katowice',
             pendulum.datetime(2024, 8, 1, 18, 0),
             pendulum.datetime(2024, 8, 1, 20, 0),
             Decimal('120')
         )
-        show1.save()
 
-    show2 = Show.get_by_id(2)
+    show2 = Show.get_by_id(db, 2)
     if not show2:
-        show2 = event_creator2.add_show(
-            event1,
+        event1.create_show(
+            'Kraków',
             pendulum.datetime(2024, 8, 2, 18, 0),
             pendulum.datetime(2024, 8, 2, 20, 0),
             Decimal(120),
         )
-        show2.save()
 
-    participant1 = Participant.get_by_id(1)
+    participant1 = Participant.get_by_id(db, 1)
     if not participant1:
-        participant1 = Participant('client@example.com', 'passwordclient')
-        participant1.save()
+        participant1 = Participant(db, 'client@example.com', 'passwordclient')
 
-    ticket1 = Ticket.get_by_id(1)
+    ticket1 = Ticket.get_by_id(db, 1)
     if not ticket1:
-        ticket1 = participant1.buy_ticket(show1)
+        participant1.buy_ticket(show1)
+
+
+if __name__ == '__main__':
+
+    database = Database('ticket_system.db')
+
+    fill_if_empty(database)
+
+    main_menu(database)

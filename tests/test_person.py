@@ -1,36 +1,32 @@
 import pytest
 from classes import *
-from database_connection import DatabaseConnection
-
-@pytest.fixture
-def db():
-    connection = DatabaseConnection()
-    yield connection
-    connection.get_connection().close()
 
 @pytest.fixture
 def person(db):
-    person = Person("test@example.com", "password123")
-    person.save()
-    return person
+    return Person(db,"test@example.com", "password123")
+
 
 def test_person_creation(person):
     assert person.person_id is not None
 
-def test_person_retrieval(person):
-    retrieved_person = Person.get_by_id(person.person_id)
+
+def test_person_retrieval(db, person):
+    retrieved_person = Person.get_by_id(db, person.person_id)
     assert retrieved_person is not None
     assert retrieved_person.email == "test@example.com"
 
-def test_person_update(person):
-    person.change_email("new@example.com")
-    person.change_password("newpassword123")
-    updated_person = Person.get_by_id(person.person_id)
-    assert updated_person.email == "new@example.com"
-    assert updated_person.match_pass("newpassword123")
 
-def test_person_deletion(person):
+def test_person_update(db, person):
+    email = "new@example.com"
+    password = "newpassword123"
+    person.change_email(email)
+    person.change_password(password)
+    logged_person = person.login_person(db, email, password)
+    assert person.person_id == logged_person.person_id
+
+
+def test_person_deletion(db, person):
     person_id = person.person_id
     person.delete()
-    deleted_person = Person.get_by_id(person_id)
+    deleted_person = Person.get_by_id(db, person_id)
     assert deleted_person is None

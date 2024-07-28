@@ -1,73 +1,6 @@
 """module with classes"""
 from datetime import datetime
 from decimal import Decimal
-from database_connection import DatabaseConnection
-
-
-class Event:
-    """Przodek klas związanych z wydarzeniem"""
-    event_id: int = None
-
-    def __init__(
-            self,
-            name: str,
-            event_type: str,
-            creator_id: int,
-            event_id: int = None,
-    ):
-        self._name = name  # unikalny indentyfikator wydarzenia
-        self.event_type = event_type
-        self.creator_id = creator_id  # relacja do osoby tworzącej wydarzenie
-        self.event_id = event_id
-
-    def save(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-
-        if self.event_id is None:
-            cursor.execute('''
-                        INSERT INTO event (name, event_type, creator_id)
-                        VALUES (?, ?, ?)
-                    ''', (self._name, self.event_type, self.creator_id))
-            self.event_id = cursor.lastrowid
-        else:
-            cursor.execute('''
-                        UPDATE event
-                        SET name = ?, event_type = ?
-                        WHERE id = ?
-                    ''', (self._name, self.event_type, self.event_id))
-        conn.commit()
-
-    def delete(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute('''
-                        DELETE FROM event
-                        WHERE id = ?
-                    ''', self.event_id)
-        conn.commit()
-
-    @classmethod
-    def get_by_id(cls, event_id):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id, name, event_type, creator_id FROM event WHERE id = ?', (event_id,))
-        row = cursor.fetchone()
-        if row:
-            return cls(row[1], row[2], row[3], row[0])
-        return None
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, new_name: str):
-        self._name = new_name
-
-    def __str__(self):
-        return f"{self._name}"
 
 
 class Person:
@@ -78,171 +11,240 @@ class Person:
 
     def __init__(
             self,
+            db,
             email: str,
             password: str,
             person_id: int = None,
     ):
-        self.email = email  # unikalny indentyfikator osoby
-        self.__password = password
-        self.person_id = person_id
-
-    def save(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-
-        if self.person_id is None:
-            cursor.execute('''
-                        INSERT INTO person (email, password)
-                        VALUES (?, ?)
-                    ''', (self.email, self.__password))
-            self.person_id = cursor.lastrowid
+        self.db = db
+        if person_id:
+            self.person_id = person_id
+            self.db.update_person(person_id, email, password)
         else:
-            cursor.execute('''
-                        UPDATE person
-                        SET email = ?, password = ?
-                        WHERE id = ?
-                    ''', (self.email, self.__password, self.person_id))
-        conn.commit()
+            self.person_id = self.db.add_person(email, password)
+
+        self.person_id, self.email, self.__password = self.db.get_person_by_id(self.person_id)
 
     def delete(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
+        self.db.delete_person(self.person_id)
 
-        cursor.execute('''
-                        DELETE FROM person
-                        WHERE id = ?
-                    ''', self.person_id)
-        conn.commit()
+    def update(self):
+        self.db.update_person(self.person_id, self.email, self.__password)
 
     @classmethod
-    def get_by_id(cls, person_id):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id, email, password FROM person WHERE id = ?', (person_id,))
-        row = cursor.fetchone()
+    def get_by_id(cls, db, person_id):
+        row = db.get_person_by_id(person_id)
         if row:
-            return cls(row[1], row[2], row[0])
+            return cls(db, row[1], row[2], row[0])
         return None
 
     def change_email(self, new_email):
         self.email = new_email
-        self.save()
+        self.update()
 
     def change_password(self, new_password):
         self.__password = new_password
-        self.save()
+        self.update()
 
-    def match_pass(self, test_password: str) -> bool:
-        """passwords matching
-        """
-        if self.__password == test_password:
-            return True
-        return False
+    @classmethod
+    def login_person(cls, db, email, test_password: str):
+        row = db.login_person(email, test_password)
+        if row:
+            return cls(db, row[1], row[2], row[0])
+        return None
+
+    def get_available_events(self):
+        result = []
+        for row in self.db.get_available_events():
+            result.append(Event.get_by_id(self.db, row[0]))
+
+        return result
 
     def __str__(self):
         return f"{self.email}"
 
 
 class Show:
-
-    def __init__(self, event_id, start_time, end_time, price, show_id: int = None):
-        self.event_id = event_id
-        self.start_time = start_time
-        self.end_time = end_time
-        self.price = price
-        self.show_id = show_id
-
-    def save(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-
-        if self.show_id is None:
-            cursor.execute('''
-                        INSERT INTO show (event_id, start_time, end_time, price)
-                        VALUES (?, ?, ?, ?)
-                    ''', (
-                self.event_id,
-                self.start_time.to_iso8601_string(),
-                self.end_time.to_iso8601_string(),
-                str(self.price)
-            ))
-            self.show_id = cursor.lastrowid
+    def __init__(
+            self,
+            db,
+            event_id: int,
+            name: str,
+            start_time: datetime,
+            end_time: datetime,
+            price: Decimal,
+            show_id: int = None
+    ):
+        self.db = db
+        if show_id:
+            self.show_id = show_id
+            self.db.update_show(show_id, name, start_time, end_time, price)
         else:
-            cursor.execute('''
-                        UPDATE show
-                        SET start_time = ?, end_time = ?, price = ?
-                        WHERE id = ?
-                    ''', (
-                self.start_time.to_iso8601_string(),
-                self.end_time.to_iso8601_string(),
-                str(self.price),
-                self.show_id
-            ))
-        conn.commit()
+            self.show_id = self.db.create_show(event_id, name, start_time, end_time, price)
+
+        self.show_id, self.event_id, self._name, self._start_time, self._end_time, self._price \
+            = self.db.get_show_by_id(self.show_id)
 
     def delete(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
+        self.db.delete_show(self.show_id)
 
-        cursor.execute('''
-                        DELETE FROM show
-                        WHERE id = ?
-                    ''', self.show_id)
-        conn.commit()
+    def update(self):
+        self.db.update_show(self.show_id, self._name, self._start_time, self._end_time, self._price)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new_name: datetime):
+        self._name = new_name
+        self.update()
+
+    @property
+    def start_time(self) -> str:
+        return self._start_time
+
+    @start_time.setter
+    def start_time(self, new_start_time: datetime):
+        self._start_time = new_start_time
+        self.update()
+
+    @property
+    def end_time(self) -> str:
+        return self._end_time
+
+    @end_time.setter
+    def end_time(self, new_end_time: datetime):
+        self._end_time = new_end_time
+        self.update()
+
+    @property
+    def price(self) -> str:
+        return self._price
+
+    @price.setter
+    def price(self, new_price: str):
+        self._price = new_price
+        self.update()
 
     @classmethod
-    def get_by_id(cls, show_id):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id, event_id, start_time, end_time, price FROM show WHERE id = ?', (show_id,))
-        row = cursor.fetchone()
+    def get_by_id(cls, db, show_id):
+        row = db.get_show_by_id(show_id)
         if row:
-            return cls(row[1], row[2], row[3], row[4], row[0])
+            return cls(db, row[1], row[2], row[3], row[4], row[5], row[0])
         return None
+
+    def __str__(self):
+        return f"{self.show_id}. {self._name} {self._start_time}-{self._end_time}"
+
+    def list_item(self):
+        return (f"{self.show_id}. {self._name} od {self._start_time.format("YYYY-MM-DD HH:mm")}"
+                f" do {self._end_time.format("YYYY-MM-DD HH:mm")}, cena: {self._price}")
+
+
+class Event:
+    """Przodek klas związanych z wydarzeniem"""
+    event_id: int = None
+
+    def __init__(
+            self,
+            db,
+            name: str,
+            event_type: str,
+            creator_id: int,
+            event_id: int = None,
+    ):
+        self.db = db
+        if event_id:
+            self.event_id = event_id
+            self.db.update_event(event_id, name, event_type)
+        else:
+            self.event_id = self.db.create_event(name, event_type, creator_id)
+
+        self.event_id, self._name, self.event_type, self.creator_id = self.db.get_event_by_id(self.event_id)
+
+    def delete(self):
+        self.db.delete_event(self.event_id)
+
+    def update(self):
+        self.db.update_event(self.event_id, self._name, self.event_type)
+
+    @classmethod
+    def get_by_id(cls, db, event_id):
+        row = db.get_event_by_id(event_id)
+        if row:
+            return cls(db, row[1], row[2], row[3], row[0])
+        return None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, new_name: str):
+        self._name = new_name
+        self.update()
+
+    def __str__(self):
+        return f"{self._name}"
+
+    def delete_show(
+            self,
+            show: Show,
+    ):
+        show.delete()
+
+    def create_show(
+            self,
+            name: str,
+            start_time: datetime,
+            end_time: datetime,
+            price: Decimal,
+    ) -> Show:
+        return Show(self.db, self.event_id, name, start_time, end_time, price)
+
+    def get_shows(self, requested_tickets=0):
+        result = []
+
+        if requested_tickets > 0:
+            rows = self.db.get_shows_with_enough_tickets(self.event_id, requested_tickets)
+        else:
+            rows = self.db.get_shows_by_event_id(self.event_id)
+
+        for row in rows:
+            result.append(Show.get_by_id(self.db, row[0]))
+
+        return result
 
 
 class Ticket:
-    def __init__(self, show_id, participant_id, ticket_id: int = None):
-        self.show_id = show_id
-        self.participant_id = participant_id
-        self.ticket_id = ticket_id
-
-    def save(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-
-        if self.ticket_id is None:
-            cursor.execute('''
-                        INSERT INTO ticket (show_id, participant_id)
-                        VALUES (?, ?)
-                    ''', (self.show_id, self.participant_id))
-            self.ticket_id = cursor.lastrowid
+    def __init__(
+            self,
+            db,
+            show_id,
+            participant_id,
+            ticket_id: int = None
+    ):
+        self.db = db
+        if ticket_id:
+            self.ticket_id = ticket_id
+            self.db.update_ticket(self.ticket_id, participant_id)
         else:
-            cursor.execute('''
-                        UPDATE ticket
-                        SET participant_id = ?
-                        WHERE id = ?
-                    ''', (self.participant_id, self.ticket_id))
-        conn.commit()
+            self.ticket_id = self.db.add_ticket(show_id, participant_id)
+
+        self.ticket_id, self.show_id, self.participant_id = self.db.get_ticket_by_id(self.ticket_id)
 
     def delete(self):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
+        self.db.delete_ticket(self.ticket_id)
 
-        cursor.execute('''
-                        DELETE FROM ticket
-                        WHERE id = ?
-                    ''', self.ticket_id)
-        conn.commit()
+    def update(self):
+        self.db.update_ticket(self.ticket_id, self.participant_id)
 
     @classmethod
-    def get_by_id(cls, ticket_id):
-        conn = DatabaseConnection().get_connection()
-        cursor = conn.cursor()
-        cursor.execute('SELECT id, show_id, participant_id FROM ticket WHERE id = ?', (ticket_id,))
-        row = cursor.fetchone()
+    def get_by_id(cls, db, ticket_id):
+        row = db.get_ticket_by_id(ticket_id)
         if row:
-            return cls(row[1], row[2], row[0])
+            return cls(db, row[1], row[2], row[0])
         return None
 
     def cancel_ticket(self) -> None:
@@ -251,9 +253,17 @@ class Ticket:
 
 class Participant(Person):
     def buy_ticket(self, show: Show) -> Ticket:
-        ticket = Ticket(show.show_id, self.person_id)
-        ticket.save()
-        return ticket
+        return Ticket(self.db, show.show_id, self.person_id)
+
+    def get_my_tickets(self):
+        result = []
+        for row in self.db.get_tickets(self.person_id):
+            result.append((
+                Ticket.get_by_id(self.db, row[0]),
+                Event.get_by_id(self.db, row[1]),
+                Show.get_by_id(self.db, row[2]),
+            ))
+        return result
 
     def __str__(self) -> str:
         """
@@ -266,42 +276,22 @@ class Participant(Person):
 class EventCreator(Person):
     """Osoba odpowiedzialna za utworzenie wydarzenia"""
 
-    def add_event(
+    def create_event(
             self,
             name: str,
             event_type: str,
     ) -> Event:
-        event = Event(name, event_type, self.person_id)
-        event.save()
-        return event
+        return Event(self.db, name, event_type, self.person_id)
 
-    def del_event(
+    def get_my_events(self):
+        result = []
+        for row in self.db.get_events_by_creator_id(self.person_id):
+            result.append(Event.get_by_id(self.db, row[0]))
+
+        return result
+
+    def delete_event(
             self,
             event: Event,
     ) -> None:
         event.delete()
-
-    def rename_event(
-            self,
-            event: Event,
-            new_name: str,
-    ) -> None:
-        event.name = new_name
-        event.save()
-
-    def del_show(
-            self,
-            show: Show,
-    ):
-        show.delete()
-
-    def add_show(
-            self,
-            event: Event,
-            start_time: datetime,
-            end_time: datetime,
-            price: Decimal,
-    ) -> Show:
-        show = Show(event.event_id, start_time, end_time, price)
-        show.save()
-        return show

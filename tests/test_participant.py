@@ -1,29 +1,21 @@
+import pendulum
 import pytest
 from classes import *
-from database_connection import DatabaseConnection
+from decimal import Decimal
 
-@pytest.fixture
-def db():
-    connection = DatabaseConnection()
-    yield connection
-    connection.get_connection().close()
 
 @pytest.fixture
 def participant(db):
-    participant = Participant("participant@example.com", "password123")
-    participant.save()
+    participant = Participant(db, "participant@example.com", "password123")
     return participant
+
 
 def test_participant_creation(participant):
     assert participant.person_id is not None
 
-def test_participant_buy_ticket(participant):
-    from classes import Show
-    from datetime import datetime
-    from decimal import Decimal
 
-    show = Show(1, datetime.now(), datetime.now(), Decimal('99.99'))
-    show.save()
+def test_participant_buy_ticket(db, participant):
+    show = Show(db, 1, 'test name', pendulum.now('Europe/Warsaw'), pendulum.now('Europe/Warsaw'), Decimal('99.99'))
     ticket = participant.buy_ticket(show)
     assert ticket.ticket_id is not None
     assert ticket.participant_id == participant.person_id
